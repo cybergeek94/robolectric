@@ -16,7 +16,7 @@ import static org.robolectric.Robolectric.newInstanceOf;
 import static org.robolectric.Robolectric.shadowOf;
 
 @SuppressWarnings({"UnusedDeclaration"})
-@Implements(value = BitmapDrawable.class, inheritImplementationMethods = true)
+@Implements(value = BitmapDrawable.class)
 public class ShadowBitmapDrawable extends ShadowDrawable {
     private Bitmap bitmap;
     private ColorFilter colorFilter;
@@ -153,8 +153,6 @@ public class ShadowBitmapDrawable extends ShadowDrawable {
     @Override
     @Implementation
     public String toString() {
-        return "ShadowBitmapDrawable{" +
-                "bitmap=" + bitmap +
-                '}';
+        return "BitmapDrawable{bitmap=" + bitmap + '}';
     }
 }

@@ -4,23 +4,13 @@ import android.widget.ProgressBar;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 
-@Implements(value = ProgressBar.class, inheritImplementationMethods = true)
+@Implements(value = ProgressBar.class)
 public class ShadowProgressBar extends ShadowView {
 
     private int progress;
     private int secondaryProgress;
     private int max = 100;
     private boolean isIndeterminate;
-
-    @Override
-    public void applyAttributes() {
-        super.applyAttributes();
-
-        final int max = attributeSet.getAttributeIntValue("android", "max", this.max);
-
-        if (max >= 0)
-            setMax(max);
-    }
 
     @Implementation
     public void setMax(int max) {

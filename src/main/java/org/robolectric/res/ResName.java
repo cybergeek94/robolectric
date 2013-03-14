@@ -60,7 +60,7 @@ public class ResName {
         }
 
         if (possiblyQualifiedResourceName.equals("@null")) {
-            return 0;
+            return null;
         }
 
         String fullyQualifiedResourceName = qualifyResourceName(possiblyQualifiedResourceName, contextPackageName, null);

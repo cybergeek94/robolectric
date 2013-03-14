@@ -1,9 +1,9 @@
 package org.robolectric.shadows;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.text.TextUtils;
@@ -18,21 +18,20 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.view.animation.Animation;
-import org.fest.reflect.core.Reflection;
 import org.robolectric.Robolectric;
-import org.robolectric.bytecode.RobolectricInternals;
+import org.robolectric.internal.HiddenApi;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.internal.RealObject;
 
 import java.io.PrintStream;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
 
-import static org.robolectric.Robolectric.Reflection.newInstanceOf;
+import static org.robolectric.Robolectric.directlyOn;
 import static org.robolectric.Robolectric.shadowOf;
+import static org.robolectric.bytecode.RobolectricInternals.getConstructor;
 
 /**
  * Shadow implementation of {@code View} that simulates the behavior of this
@@ -42,7 +41,7 @@ import static org.robolectric.Robolectric.shadowOf;
  * visibility, onclick, tags, and tracks the size and shape of the view.
  */
 @SuppressWarnings({"UnusedDeclaration"})
-@Implements(View.class)
+@Implements(value = View.class, callThroughByDefault = true)
 public class ShadowView {
     public static final String ANDROID_NS = "http://schemas.android.com/apk/res/android";
     // This is dumb, we should have a Robolectric-wide way of warning about weird states. todo [xw]
@@ -51,34 +50,25 @@ public class ShadowView {
     @RealObject
     protected View realView;
 
-    private int id;
     ShadowView parent;
-    protected Context context;
-    private boolean selected;
-    private boolean pressed;
+//    private boolean selected;
+//    private boolean pressed;
     private View.OnClickListener onClickListener;
     private View.OnLongClickListener onLongClickListener;
-    private Object tag;
+//    private Object tag;
     private boolean enabled = true;
     private int visibility = View.VISIBLE;
-    int left;
-    int top;
-    int right;
-    int bottom;
     float x;
     float y;
-    private int paddingLeft;
-    private int paddingTop;
-    private int paddingRight;
-    private int paddingBottom;
-    private ViewGroup.LayoutParams layoutParams;
-    private Map<Integer, Object> tags = new HashMap<Integer, Object>();
+//    private int paddingLeft;
+//    private int paddingTop;
+//    private int paddingRight;
+//    private int paddingBottom;
+//    private Map<Integer, Object> tags = new HashMap<Integer, Object>();
     private boolean clickable;
     private boolean longClickable;
     protected boolean focusable;
     boolean focusableInTouchMode;
-    private int backgroundResourceId = -1;
-    private int backgroundColor;
     protected View.OnKeyListener onKeyListener;
     private boolean isFocused;
     private View.OnFocusChangeListener onFocusChangeListener;
@@ -88,123 +78,92 @@ public class ShadowView {
     private boolean drawingCacheEnabled;
     public Point scrollToCoordinates = new Point();
     private boolean didRequestLayout;
-    private Drawable background;
     private Animation animation;
     private ViewTreeObserver viewTreeObserver;
     private MotionEvent lastTouchEvent;
     private int nextFocusDownId = View.NO_ID;
     private CharSequence contentDescription = null;
-    private int measuredWidth = 0;
-    private int measuredHeight = 0;
     private TouchDelegate touchDelegate;
-    private float translationX = 0.0f;
-    private float translationY = 0.0f;
-    private float alpha = 1.0f;
+//    private float translationX = 0.0f;
+//    private float translationY = 0.0f;
+//    private float alpha = 1.0f;
     private boolean attachedToWindow;
     private float scaleX = 1.0f;
     private float scaleY = 1.0f;
     private int hapticFeedbackPerformed = -1;
     private boolean onLayoutWasCalled;
 
-    public void __constructor__(Context context) {
-        __constructor__(context, null);
-    }
-
-    public void __constructor__(Context context, AttributeSet attributeSet) {
-        __constructor__(context, attributeSet, 0);
-    }
-
     public void __constructor__(Context context, AttributeSet attributeSet, int defStyle) {
         if (context == null) throw new NullPointerException("no context");
 
-        this.context = context;
         this.attributeSet = attributeSet;
+
+        getConstructor(View.class, realView, Context.class, AttributeSet.class, int.class)
+                .invoke(context, attributeSet, defStyle);
 
         if (attributeSet != null) {
             applyAttributes();
         }
-
-        RobolectricInternals.getConstructor(View.class, realView, Context.class).invoke(context);
     }
 
-    public void applyAttributes() {
-        applyIdAttribute();
-        applyVisibilityAttribute();
-        applyEnabledAttribute();
-        applyBackgroundAttribute();
-        applyTagAttribute();
-        applyOnClickAttribute();
-        applyContentDescriptionAttribute();
-
-        // todo test
-        applyAlphaAttribute();
+    protected void applyAttributes() {
     }
 
-    @Implementation
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    @Implementation
-    public void setClickable(boolean clickable) {
-        this.clickable = clickable;
-    }
-
-    @Implementation
-    public void setLongClickable(boolean longClickable) {
-        this.longClickable = longClickable;
-    }
-
-    /**
-     * Also sets focusable in touch mode to false if {@code focusable} is false, which is the Android behavior.
-     *
-     * @param focusable the new status of the {@code View}'s focusability
-     */
-    @Implementation
-    public void setFocusable(boolean focusable) {
-        this.focusable = focusable;
-        if (!focusable) {
-            setFocusableInTouchMode(false);
-        }
-    }
-
-    @Implementation
-    public final boolean isFocusableInTouchMode() {
-        return focusableInTouchMode;
-    }
-
-    /**
-     * Also sets focusable to true if {@code focusableInTouchMode} is true, which is the Android behavior.
-     *
-     * @param focusableInTouchMode the new status of the {@code View}'s touch mode focusability
-     */
-    @Implementation
-    public void setFocusableInTouchMode(boolean focusableInTouchMode) {
-        this.focusableInTouchMode = focusableInTouchMode;
-        if (focusableInTouchMode) {
-            setFocusable(true);
-        }
-    }
-
-    @Implementation(i18nSafe = false)
-    public void setContentDescription(CharSequence contentDescription) {
-        this.contentDescription = contentDescription;
-    }
-
-    @Implementation
-    public boolean isFocusable() {
-        return focusable;
-    }
-
-    @Implementation
-    public int getId() {
-        return id;
-    }
-
-    @Implementation
-    public CharSequence getContentDescription() {
-        return contentDescription;
-    }
+//    @Implementation
+//    public void setClickable(boolean clickable) {
+//        this.clickable = clickable;
+//    }
+//
+//    @Implementation
+//    public void setLongClickable(boolean longClickable) {
+//        this.longClickable = longClickable;
+//    }
+//
+//    /**
+//     * Also sets focusable in touch mode to false if {@code focusable} is false, which is the Android behavior.
+//     *
+//     * @param focusable the new status of the {@code View}'s focusability
+//     */
+//    @Implementation
+//    public void setFocusable(boolean focusable) {
+//        this.focusable = focusable;
+//        if (!focusable) {
+//            setFocusableInTouchMode(false);
+//        }
+//    }
+//
+//    @Implementation
+//    public final boolean isFocusableInTouchMode() {
+//        return focusableInTouchMode;
+//    }
+//
+//    /**
+//     * Also sets focusable to true if {@code focusableInTouchMode} is true, which is the Android behavior.
+//     *
+//     * @param focusableInTouchMode the new status of the {@code View}'s touch mode focusability
+//     */
+//    @Implementation
+//    public void setFocusableInTouchMode(boolean focusableInTouchMode) {
+//        this.focusableInTouchMode = focusableInTouchMode;
+//        if (focusableInTouchMode) {
+//            setFocusable(true);
+//        }
+//    }
+//
+//    @Implementation(i18nSafe = false)
+//    public void setContentDescription(CharSequence contentDescription) {
+//        this.contentDescription = contentDescription;
+//    }
+//
+//    @Implementation
+//    public boolean isFocusable() {
+//        return focusable;
+//    }
+//
+//    @Implementation
+//    public CharSequence getContentDescription() {
+//        return contentDescription;
+//    }
 
     /**
      * Simulates the inflating of the requested resource.
@@ -219,63 +178,43 @@ public class ShadowView {
         return LayoutInflater.from(context).inflate(resource, root);
     }
 
-    /**
-     * Finds this {@code View} if it's ID is passed in, returns {@code null} otherwise
-     *
-     * @param id the id of the {@code View} to find
-     * @return the {@code View}, if found, {@code null} otherwise
-     */
-    @Implementation
-    public View findViewById(int id) {
-        if (id == this.id) {
-            return realView;
-        }
+//    /**
+//     * Finds this {@code View} if it's ID is passed in, returns {@code null} otherwise
+//     *
+//     * @param id the id of the {@code View} to find
+//     * @return the {@code View}, if found, {@code null} otherwise
+//     */
+//    @Implementation
+//    public View findViewById(int id) {
+//        if (id == this.id) {
+//            return realView;
+//        }
+//
+//        return null;
+//    }
 
-        return null;
-    }
+//    @Implementation
+//    public View findViewWithTag(Object obj) {
+//        if (obj.equals(realView.getTag())) {
+//            return realView;
+//        }
+//
+//        return null;
+//    }
+//
+//    @Implementation
+//    public View getRootView() {
+//        ShadowView root = this;
+//        while (root.parent != null) {
+//            root = root.parent;
+//        }
+//        return root.realView;
+//    }
 
-    @Implementation
-    public View findViewWithTag(Object obj) {
-        if (obj.equals(realView.getTag())) {
-            return realView;
-        }
-
-        return null;
-    }
-
-    @Implementation
-    public View getRootView() {
-        ShadowView root = this;
-        while (root.parent != null) {
-            root = root.parent;
-        }
-        return root.realView;
-    }
-
-    @Implementation
-    public ViewGroup.LayoutParams getLayoutParams() {
-        return layoutParams;
-    }
-
-    @Implementation
-    public void setLayoutParams(ViewGroup.LayoutParams params) {
-        layoutParams = params;
-    }
-
-    @Implementation
-    public final ViewParent getParent() {
-        return parent == null ? null : (ViewParent) parent.realView;
-    }
-
-    @Implementation
-    public final Context getContext() {
-        return context;
-    }
-
-    @Implementation
-    public Resources getResources() {
-        return context.getResources();
-    }
+//    @Implementation
+//    public final ViewParent getParent() {
+//        return parent == null ? null : (ViewParent) parent.realView;
+//    }
 
     /**
      * Build drawable, either LayerDrawable or BitmapDrawable.
@@ -284,203 +223,142 @@ public class ShadowView {
      * @return Drawable
      */
     protected Drawable buildDrawable(int resourceId) {
-        return getResources().getDrawable(resourceId);
+        return realView.getResources().getDrawable(resourceId);
     }
 
     protected String getQualifiers() {
-        return shadowOf(context.getResources().getConfiguration()).getQualifiers();
-    }
-
-    @Implementation
-    public void setBackgroundResource(int backgroundResourceId) {
-        this.backgroundResourceId = backgroundResourceId;
-        setBackgroundDrawable(backgroundResourceId == 0 ? null : getResources().getDrawable(backgroundResourceId));
+        return shadowOf(realView.getResources().getConfiguration()).getQualifiers();
     }
 
     /**
      * Non-Android accessor.
      *
-     * @return the resource ID of this views background
+     * @deprecated Use FEST assertions instead.
+     * @return the resource ID of this view's background
      */
     public int getBackgroundResourceId() {
-        return backgroundResourceId;
-    }
-
-    @Implementation
-    public void setBackgroundColor(int color) {
-        backgroundColor = color;
-        setBackgroundDrawable(new ColorDrawable(color));
+        Drawable drawable = realView.getBackground();
+        return drawable instanceof BitmapDrawable
+                ? shadowOf(((BitmapDrawable) drawable).getBitmap()).getLoadedFromResourceId()
+                : -1;
     }
 
     /**
      * Non-Android accessor.
      *
-     * @return the resource color ID of this views background
+     * @deprecated Use FEST assertions instead.
+     * @return the color of this view's background, or 0 if it's not a solid color
      */
     public int getBackgroundColor() {
-        return backgroundColor;
+        Drawable drawable = realView.getBackground();
+        return drawable instanceof ColorDrawable ? ((ColorDrawable) drawable).getColor() : 0;
     }
 
-    @Implementation
-    public void setBackground(Drawable d) {
-        setBackgroundDrawable(d);
+    @HiddenApi @Implementation
+    public void computeOpaqueFlags() {
     }
 
-    @Implementation
-    public void setBackgroundDrawable(Drawable d) {
-        this.background = d;
-    }
-
-    @Implementation
-    public Drawable getBackground() {
-        return background;
-    }
-
-    @Implementation
-    public int getVisibility() {
-        return visibility;
-    }
-
-    @Implementation
-    public void setVisibility(int visibility) {
-        this.visibility = visibility;
-    }
-
-    @Implementation
-    public void setSelected(boolean selected) {
-        this.selected = selected;
-    }
-
-    @Implementation
-    public boolean isSelected() {
-        return this.selected;
-    }
-
-    @Implementation
-    public void setPressed(boolean pressed) {
-        this.pressed = pressed;
-    }
-
-    @Implementation
-    public boolean isPressed() {
-        return this.pressed;
-    }
-
-    @Implementation
-    public boolean isEnabled() {
-        return this.enabled;
-    }
-
-    @Implementation
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+//    @Implementation
+//    public Drawable getBackground() {
+//        return background;
+//    }
+//
+//    @Implementation
+//    public int getVisibility() {
+//        return visibility;
+//    }
+//
+//    @Implementation
+//    public void setVisibility(int visibility) {
+//        this.visibility = visibility;
+//    }
+//
+//    @Implementation
+//    public void setSelected(boolean selected) {
+//        this.selected = selected;
+//    }
+//
+//    @Implementation
+//    public boolean isSelected() {
+//        return this.selected;
+//    }
+//
+//    @Implementation
+//    public void setPressed(boolean pressed) {
+//        this.pressed = pressed;
+//    }
+//
+//    @Implementation
+//    public boolean isPressed() {
+//        return this.pressed;
+//    }
+//
+//    @Implementation
+//    public boolean isEnabled() {
+//        return this.enabled;
+//    }
+//
+//    @Implementation
+//    public void setEnabled(boolean enabled) {
+//        this.enabled = enabled;
+//    }
 
     @Implementation
     public void setOnClickListener(View.OnClickListener onClickListener) {
         this.onClickListener = onClickListener;
-        if (!isClickable()) {
-            setClickable(true);
-        }
+        directly().setOnClickListener(onClickListener);
+//        if (!isClickable()) {
+//            setClickable(true);
+//        }
     }
 
-    @Implementation
-    public boolean performClick() {
-        if (onClickListener != null) {
-            onClickListener.onClick(realView);
-            return true;
-        } else {
-            return false;
-        }
-    }
+//    @Implementation
+//    public boolean performClick() {
+//        if (onClickListener != null) {
+//            onClickListener.onClick(realView);
+//            return true;
+//        } else {
+//            return false;
+//        }
+//    }
 
     @Implementation
     public void setOnLongClickListener(View.OnLongClickListener onLongClickListener) {
         this.onLongClickListener = onLongClickListener;
-        if (!isLongClickable()) {
-            setLongClickable(true);
-        }
+        directly().setOnLongClickListener(onLongClickListener);
+//        if (!isLongClickable()) {
+//            setLongClickable(true);
+//        }
     }
 
-    @Implementation
-    public boolean performLongClick() {
-        if (onLongClickListener != null) {
-            onLongClickListener.onLongClick(realView);
-            return true;
-        } else {
-            return false;
-        }
-    }
+//    @Implementation
+//    public boolean performLongClick() {
+//        if (onLongClickListener != null) {
+//            onLongClickListener.onLongClick(realView);
+//            return true;
+//        } else {
+//            return false;
+//        }
+//    }
+//
+//    @Implementation
+//    public void setOnKeyListener(View.OnKeyListener onKeyListener) {
+//        this.onKeyListener = onKeyListener;
+//    }
 
-    @Implementation
-    public void setOnKeyListener(View.OnKeyListener onKeyListener) {
-        this.onKeyListener = onKeyListener;
-    }
-
-    @Implementation
-    public Object getTag() {
-        return this.tag;
-    }
-
-    @Implementation
-    public void setTag(Object tag) {
-        this.tag = tag;
-    }
-
-    @Implementation
-    public final int getHeight() {
-        return bottom - top;
-    }
-
-    @Implementation
-    public final int getWidth() {
-        return right - left;
-    }
-
-    @Implementation
-    public final int getMeasuredWidth() {
-        return measuredWidth;
-    }
-
-    @Implementation
-    public final int getMeasuredHeight() {
-        return measuredHeight;
-    }
-
-    @Implementation
-    public final void setMeasuredDimension(int measuredWidth, int measuredHeight) {
-        this.measuredWidth = measuredWidth;
-        this.measuredHeight = measuredHeight;
-    }
-
-    @Implementation
-    public void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec),
-                MeasureSpec.getSize(heightMeasureSpec));
-    }
-
-    @Implementation
-    public final void measure(int widthMeasureSpec, int heightMeasureSpec) {
-        // We really want to invoke the onMeasure method of the real view,
-        // as the real View likely contains an implementation of onMeasure
-        // worthy of test, rather the default shadow implementation.
-        // But Android declares onMeasure as protected.
-        try {
-            Method onMeasureMethod = realView.getClass().getDeclaredMethod("onMeasure", Integer.TYPE, Integer.TYPE);
-            onMeasureMethod.setAccessible(true);
-            onMeasureMethod.invoke(realView, widthMeasureSpec, heightMeasureSpec);
-        } catch (NoSuchMethodException e) {
-            // use default shadow implementation
-            onMeasure(widthMeasureSpec, heightMeasureSpec);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-        }
-    }
+//    @Implementation
+//    public Object getTag() {
+//        return this.tag;
+//    }
+//
+//    @Implementation
+//    public void setTag(Object tag) {
+//        this.tag = tag;
+//    }
 
     @Implementation
     public void draw(android.graphics.Canvas canvas) {
+        Drawable background = realView.getBackground();
         if (background != null) {
             shadowOf(canvas).appendDescription("background:");
             background.draw(canvas);
@@ -488,69 +366,57 @@ public class ShadowView {
     }
 
     @Implementation
-    public void layout(int l, int t, int r, int b) {
-        if (l != left || r != right || t != top || b != bottom) {
-            left = l;
-            top = t;
-            right = r;
-            bottom = b;
-
-            realView.invalidate();
-            Reflection.method("onLayout").withParameterTypes(boolean.class, int.class, int.class, int.class, int.class)
-                    .in(realView).invoke(true, l, t, r, b);
-        }
-    }
-
-    @Implementation
     public void onLayout(boolean changed, int left, int top, int right, int bottom) {
         onLayoutWasCalled = true;
+//        directlyOn(realView, View.class).onLayout() // not needed, empty method body (and protected)
     }
 
     public boolean onLayoutWasCalled() {
         return onLayoutWasCalled;
     }
 
-    @Implementation
-    public void setPadding(int left, int top, int right, int bottom) {
-        paddingLeft = left;
-        paddingTop = top;
-        paddingRight = right;
-        paddingBottom = bottom;
-    }
-
-    @Implementation
-    public int getPaddingTop() {
-        return paddingTop;
-    }
-
-    @Implementation
-    public int getPaddingLeft() {
-        return paddingLeft;
-    }
-
-    @Implementation
-    public int getPaddingRight() {
-        return paddingRight;
-    }
-
-    @Implementation
-    public int getPaddingBottom() {
-        return paddingBottom;
-    }
-
-    @Implementation
-    public Object getTag(int key) {
-        return tags.get(key);
-    }
-
-    @Implementation
-    public void setTag(int key, Object value) {
-        tags.put(key, value);
-    }
-
+//    @Implementation
+//    public void setPadding(int left, int top, int right, int bottom) {
+//        paddingLeft = left;
+//        paddingTop = top;
+//        paddingRight = right;
+//        paddingBottom = bottom;
+//    }
+//
+//    @Implementation
+//    public int getPaddingTop() {
+//        return paddingTop;
+//    }
+//
+//    @Implementation
+//    public int getPaddingLeft() {
+//        return paddingLeft;
+//    }
+//
+//    @Implementation
+//    public int getPaddingRight() {
+//        return paddingRight;
+//    }
+//
+//    @Implementation
+//    public int getPaddingBottom() {
+//        return paddingBottom;
+//    }
+//
+//    @Implementation
+//    public Object getTag(int key) {
+//        return tags.get(key);
+//    }
+//
+//    @Implementation
+//    public void setTag(int key, Object value) {
+//        tags.put(key, value);
+//    }
+//
     @Implementation
     public void requestLayout() {
         didRequestLayout = true;
+        directly().requestLayout();
     }
 
     public boolean didRequestLayout() {
@@ -561,16 +427,16 @@ public class ShadowView {
         this.didRequestLayout = didRequestLayout;
     }
 
-    @Implementation
-    public final boolean requestFocus() {
-        return requestFocus(View.FOCUS_DOWN);
-    }
+//    @Implementation
+//    public final boolean requestFocus() {
+//        return requestFocus(View.FOCUS_DOWN);
+//    }
 
-    @Implementation
-    public final boolean requestFocus(int direction) {
-        setViewFocus(true);
-        return true;
-    }
+//    @Implementation
+//    public final boolean requestFocus(int direction) {
+//        setViewFocus(true);
+//        return true;
+//    }
 
     public void setViewFocus(boolean hasFocus) {
         this.isFocused = hasFocus;
@@ -579,88 +445,90 @@ public class ShadowView {
         }
     }
 
-    @Implementation
-    public int getNextFocusDownId() {
-        return nextFocusDownId;
-    }
-
-    @Implementation
-    public void setNextFocusDownId(int nextFocusDownId) {
-        this.nextFocusDownId = nextFocusDownId;
-    }
-
-    @Implementation
-    public boolean isFocused() {
-        return isFocused;
-    }
-
-    @Implementation
-    public boolean hasFocus() {
-        return isFocused;
-    }
-
-    @Implementation
-    public void clearFocus() {
-        setViewFocus(false);
-    }
-
-    @Implementation
-    public void setOnFocusChangeListener(View.OnFocusChangeListener listener) {
-        onFocusChangeListener = listener;
-    }
-
-    @Implementation
-    public View.OnFocusChangeListener getOnFocusChangeListener() {
-        return onFocusChangeListener;
-    }
+//    @Implementation
+//    public int getNextFocusDownId() {
+//        return nextFocusDownId;
+//    }
+//
+//    @Implementation
+//    public void setNextFocusDownId(int nextFocusDownId) {
+//        this.nextFocusDownId = nextFocusDownId;
+//    }
+//
+//    @Implementation
+//    public boolean isFocused() {
+//        return isFocused;
+//    }
+//
+//    @Implementation
+//    public boolean hasFocus() {
+//        return isFocused;
+//    }
+//
+//    @Implementation
+//    public void clearFocus() {
+//        setViewFocus(false);
+//    }
+//
+//    @Implementation
+//    public void setOnFocusChangeListener(View.OnFocusChangeListener listener) {
+//        onFocusChangeListener = listener;
+//    }
+//
+//    @Implementation
+//    public View.OnFocusChangeListener getOnFocusChangeListener() {
+//        return onFocusChangeListener;
+//    }
 
     @Implementation
     public void invalidate() {
         wasInvalidated = true;
+        directly().invalidate();
     }
 
     @Implementation
     public boolean onTouchEvent(MotionEvent event) {
         lastTouchEvent = event;
-        return false;
+        return directly().onTouchEvent(event);
     }
 
     @Implementation
     public void setOnTouchListener(View.OnTouchListener onTouchListener) {
         this.onTouchListener = onTouchListener;
+        directly().setOnTouchListener(onTouchListener);
     }
 
-    @Implementation
-    public boolean dispatchTouchEvent(MotionEvent event) {
-        if (onTouchListener != null && onTouchListener.onTouch(realView, event)) {
-            return true;
-        }
-        return realView.onTouchEvent(event);
-    }
+//    @Implementation
+//    public boolean dispatchTouchEvent(MotionEvent event) {
+//        if (onTouchListener != null && onTouchListener.onTouch(realView, event)) {
+//            return true;
+//        }
+//        return realView.onTouchEvent(event);
+//    }
 
     public MotionEvent getLastTouchEvent() {
         return lastTouchEvent;
     }
 
-    @Implementation
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        if (onKeyListener != null) {
-            return onKeyListener.onKey(realView, event.getKeyCode(), event);
-        }
-        return false;
-    }
-
-    @Implementation
-    public boolean isShown() {
-        View parent = realView;
-        while (parent != null) {
-            if (parent.getVisibility() != View.VISIBLE) {
-                return false;
-            }
-            parent = (View) parent.getParent();
-        }
-        return true;
-    }
+//    @Implementation
+//    public boolean dispatchKeyEvent(KeyEvent event) {
+//        if (onKeyListener != null) {
+//            return onKeyListener.onKey(realView, event.getKeyCode(), event);
+//        }
+//        return false;
+//    }
+//
+//    @Implementation
+//    public boolean isShown() {
+//        View parent = realView;
+//        while (parent != null) {
+//            if (parent.getVisibility() != View.VISIBLE) {
+//                return false;
+//            }
+//            parent = (View) parent.getParent();
+//        }
+//        return true;
+//    }
 
 
     /**
@@ -695,8 +563,8 @@ public class ShadowView {
     }
 
     protected void dumpAttributes(PrintStream out) {
-        if (id > 0) {
-            dumpAttribute(out, "id", shadowOf(context).getResourceLoader().getNameForId(id));
+        if (realView.getId() > 0) {
+            dumpAttribute(out, "id", shadowOf(realView.getContext()).getResourceLoader().getNameForId(realView.getId()));
         }
 
         switch (realView.getVisibility()) {
@@ -719,53 +587,21 @@ public class ShadowView {
         for (int i = 0; i < indent; i++) out.print(" ");
     }
 
-    /**
-     * @return left side of the view
-     */
-    @Implementation
-    public int getLeft() {
-        return left;
-    }
-
-    /**
-     * @return top coordinate of the view
-     */
-    @Implementation
-    public int getTop() {
-        return top;
-    }
-
-    /**
-     * @return right side of the view
-     */
-    @Implementation
-    public int getRight() {
-        return right;
-    }
-
-    /**
-     * @return bottom coordinate of the view
-     */
-    @Implementation
-    public int getBottom() {
-        return bottom;
-    }
-
-    /**
-     * @return whether the view is clickable
-     */
-    @Implementation
-    public boolean isClickable() {
-        return clickable;
-    }
-
-    /**
-     * @return whether the view is long-clickable
-     */
-    @Implementation
-    public boolean isLongClickable() {
-        return longClickable;
-    }
+//    /**
+//     * @return whether the view is clickable
+//     */
+//    @Implementation
+//    public boolean isClickable() {
+//        return clickable;
+//    }
+//
+//    /**
+//     * @return whether the view is long-clickable
+//     */
+//    @Implementation
+//    public boolean isLongClickable() {
+//        return longClickable;
+//    }
 
     /**
      * Non-Android accessor.
@@ -783,80 +619,60 @@ public class ShadowView {
         wasInvalidated = false;
     }
 
-    @Implementation
-    public void setLeft(int left) {
-        this.left = left;
-    }
+//    @Implementation
+//    public void setX(float newX) {
+//        this.x = newX;
+//    }
+//
+//    @Implementation
+//    public void setY(float newY) {
+//        this.y = newY;
+//    }
+//
+//    @Implementation
+//    public float getX() {
+//        return this.x;
+//    }
+//
+//    @Implementation
+//    public float getY() {
+//        return this.y;
+//    }
 
-    @Implementation
-    public void setTop(int top) {
-        this.top = top;
-    }
-
-    @Implementation
-    public void setRight(int right) {
-        this.right = right;
-    }
-
-    @Implementation
-    public void setBottom(int bottom) {
-        this.bottom = bottom;
-    }
-
-    @Implementation
-    public void setX(float newX) {
-        this.x = newX;
-    }
-
-    @Implementation
-    public void setY(float newY) {
-        this.y = newY;
-    }
-
-    @Implementation
-    public float getX() {
-        return this.x;
-    }
-
-    @Implementation
-    public float getY() {
-        return this.y;
-    }
-
-    /**
-     * Non-Android accessor.
-     */
-    public void setPaddingLeft(int paddingLeft) {
-        this.paddingLeft = paddingLeft;
-    }
-
-    /**
-     * Non-Android accessor.
-     */
-    public void setPaddingTop(int paddingTop) {
-        this.paddingTop = paddingTop;
-    }
-
-    /**
-     * Non-Android accessor.
-     */
-    public void setPaddingRight(int paddingRight) {
-        this.paddingRight = paddingRight;
-    }
-
-    /**
-     * Non-Android accessor.
-     */
-    public void setPaddingBottom(int paddingBottom) {
-        this.paddingBottom = paddingBottom;
-    }
-
-    /**
-     * Non-Android accessor.
-     */
-    public void setFocused(boolean focused) {
-        isFocused = focused;
-    }
+//    /**
+//     * Non-Android accessor.
+//     */
+//    public void setPaddingLeft(int paddingLeft) {
+//        this.paddingLeft = paddingLeft;
+//    }
+//
+//    /**
+//     * Non-Android accessor.
+//     */
+//    public void setPaddingTop(int paddingTop) {
+//        this.paddingTop = paddingTop;
+//    }
+//
+//    /**
+//     * Non-Android accessor.
+//     */
+//    public void setPaddingRight(int paddingRight) {
+//        this.paddingRight = paddingRight;
+//    }
+//
+//    /**
+//     * Non-Android accessor.
+//     */
+//    public void setPaddingBottom(int paddingBottom) {
+//        this.paddingBottom = paddingBottom;
+//    }
+//
+//    /**
+//     * Non-Android accessor.
+//     */
+//    public void setFocused(boolean focused) {
+//        isFocused = focused;
+//    }
 
 
     /**
@@ -865,7 +681,7 @@ public class ShadowView {
      * @throws RuntimeException if the view is disabled or if the view or any of its parents are not visible.
      */
     public boolean checkedPerformClick() {
-        if (!isShown()) {
+        if (!realView.isShown()) {
             throw new RuntimeException("View is not visible and cannot be clicked");
         }
         if (!realView.isEnabled()) {
@@ -884,104 +700,110 @@ public class ShadowView {
         }
     }
 
-    private void applyIdAttribute() {
-        Integer id = attributeSet.getAttributeResourceValue(ANDROID_NS, "id", 0);
-        if (getId() == 0) {
-            setId(id);
-        }
-    }
-
-    private void applyTagAttribute() {
-        Object tag = attributeSet.getAttributeValue(ANDROID_NS, "tag");
-        if (tag != null) {
-            setTag(tag);
-        }
-    }
-
-    private void applyVisibilityAttribute() {
-        String visibility = attributeSet.getAttributeValue(ANDROID_NS, "visibility");
-        if (visibility != null) {
-            if (visibility.equals("gone")) {
-                setVisibility(View.GONE);
-            } else if (visibility.equals("invisible")) {
-                setVisibility(View.INVISIBLE);
-            }
-        }
-    }
-
-    private void applyEnabledAttribute() {
-        setEnabled(attributeSet.getAttributeBooleanValue(ANDROID_NS, "enabled", true));
-    }
-
-    private void applyBackgroundAttribute() {
-        String source = attributeSet.getAttributeValue(ANDROID_NS, "background");
-        if (source != null) {
-            if (source.startsWith("@drawable/")) {
-                setBackgroundResource(attributeSet.getAttributeResourceValue(ANDROID_NS, "background", 0));
-            }
-        }
-    }
-
-    private void applyOnClickAttribute() {
-        final String handlerName = attributeSet.getAttributeValue(ANDROID_NS, "onClick");
-        if (handlerName == null) {
-            return;
-        }
-
-        /* good part of following code has been directly copied from original
-         * android source */
-        setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                Method mHandler;
-                try {
-                    mHandler = getContext().getClass().getMethod(handlerName,
-                            View.class);
-                } catch (NoSuchMethodException e) {
-                    int id = getId();
-                    String idText = id == View.NO_ID ? "" : " with id '"
-                            + shadowOf(context).getResourceLoader()
-                            .getNameForId(id) + "'";
-                    throw new IllegalStateException("Could not find a method " +
-                            handlerName + "(View) in the activity "
-                            + getContext().getClass() + " for onClick handler"
-                            + " on view " + realView.getClass() + idText, e);
-                }
-
-                try {
-                    mHandler.invoke(getContext(), realView);
-                } catch (IllegalAccessException e) {
-                    throw new IllegalStateException("Could not execute non "
-                            + "public method of the activity", e);
-                } catch (InvocationTargetException e) {
-                    throw new IllegalStateException("Could not execute "
-                            + "method of the activity", e);
-                }
-            }
-        });
-    }
-
-    private void applyAlphaAttribute() {
-        Float alpha = attributeSet.getAttributeFloatValue(ANDROID_NS, "alpha", 1f);
-        if (alpha != null) {
-            setAlpha(alpha);
-        }
-    }
-
-    private void applyContentDescriptionAttribute() {
-        String contentDescription = attributeSet.getAttributeValue(ANDROID_NS, "contentDescription");
-        if (contentDescription != null) {
-            if (contentDescription.startsWith("@string/")) {
-                int resId = attributeSet.getAttributeResourceValue(ANDROID_NS, "contentDescription", 0);
-                contentDescription = context.getResources().getString(resId);
-            }
-            setContentDescription(contentDescription);
-        }
-    }
+//    private void applyIdAttribute() {
+//        Integer id = attributeSet.getAttributeResourceValue(ANDROID_NS, "id", 0);
+//        if (realView.getId() == 0) {
+//            realView.setId(id);
+//        }
+//    }
+//
+//    private void applyTagAttribute() {
+//        Object tag = attributeSet.getAttributeValue(ANDROID_NS, "tag");
+//        if (tag != null) {
+//            realView.setTag(tag);
+//        }
+//    }
+//
+//    private void applyVisibilityAttribute() {
+//        String visibility = attributeSet.getAttributeValue(ANDROID_NS, "visibility");
+//        if (visibility != null) {
+//            if (visibility.equals("gone")) {
+//                realView.setVisibility(View.GONE);
+//            } else if (visibility.equals("invisible")) {
+//                realView.setVisibility(View.INVISIBLE);
+//            }
+//        }
+//    }
+//
+//    private void applyEnabledAttribute() {
+//        realView.setEnabled(attributeSet.getAttributeBooleanValue(ANDROID_NS, "enabled", true));
+//    }
+//
+//    private void applyBackgroundAttribute() {
+//        String source = attributeSet.getAttributeValue(ANDROID_NS, "background");
+//        if (source != null) {
+//            if (source.startsWith("@drawable/")) {
+//                setBackgroundResource(attributeSet.getAttributeResourceValue(ANDROID_NS, "background", 0));
+//            }
+//        }
+//    }
+//
+//    private void applyOnClickAttribute() {
+//        final String handlerName = attributeSet.getAttributeValue(ANDROID_NS, "onClick");
+//        if (handlerName == null) {
+//            return;
+//        }
+//
+//        final Context context = realView.getContext();
+//
+//        /* good part of following code has been directly copied from original
+//         * android source */
+//        realView.setOnClickListener(new View.OnClickListener() {
+//            public void onClick(View v) {
+//                Method mHandler;
+//                try {
+//                    mHandler = context.getClass().getMethod(handlerName,
+//                            View.class);
+//                } catch (NoSuchMethodException e) {
+//                    int id = realView.getId();
+//                    String idText = id == View.NO_ID ? "" : " with id '"
+//                            + shadowOf(context).getResourceLoader()
+//                            .getNameForId(id) + "'";
+//                    throw new IllegalStateException("Could not find a method " +
+//                            handlerName + "(View) in the activity "
+//                            + context.getClass() + " for onClick handler"
+//                            + " on view " + realView.getClass() + idText, e);
+//                }
+//
+//                try {
+//                    mHandler.invoke(context, realView);
+//                } catch (IllegalAccessException e) {
+//                    throw new IllegalStateException("Could not execute non "
+//                            + "public method of the activity", e);
+//                } catch (InvocationTargetException e) {
+//                    throw new IllegalStateException("Could not execute "
+//                            + "method of the activity", e);
+//                }
+//            }
+//        });
+//    }
+//
+//    private void applyAlphaAttribute() {
+//        Float alpha = attributeSet.getAttributeFloatValue(ANDROID_NS, "alpha", 1f);
+//        if (alpha != null) {
+//            setAlpha(alpha);
+//        }
+//    }
+//
+//    private void applyContentDescriptionAttribute() {
+//        String contentDescription = attributeSet.getAttributeValue(ANDROID_NS, "contentDescription");
+//        if (contentDescription != null) {
+//            if (contentDescription.startsWith("@string/")) {
+//                int resId = attributeSet.getAttributeResourceValue(ANDROID_NS, "contentDescription", 0);
+//                contentDescription = realView.getResources().getString(resId);
+//            }
+//            realView.setContentDescription(contentDescription);
+//        }
+//    }
 
     private boolean noParentHasFocus(View view) {
         while (view != null) {
             if (view.hasFocus()) return false;
-            view = (View) view.getParent();
+            ViewParent parent = view.getParent();
+            if (!(parent instanceof View)) {
+                parent = null;
+            }
+            view = (View) parent;
         }
         return true;
     }
@@ -1013,15 +835,15 @@ public class ShadowView {
         return onLongClickListener;
     }
 
-    @Implementation
-    public void setDrawingCacheEnabled(boolean drawingCacheEnabled) {
-        this.drawingCacheEnabled = drawingCacheEnabled;
-    }
-
-    @Implementation
-    public boolean isDrawingCacheEnabled() {
-        return drawingCacheEnabled;
-    }
+//    @Implementation
+//    public void setDrawingCacheEnabled(boolean drawingCacheEnabled) {
+//        this.drawingCacheEnabled = drawingCacheEnabled;
+//    }
+//
+//    @Implementation
+//    public boolean isDrawingCacheEnabled() {
+//        return drawingCacheEnabled;
+//    }
 
     @Implementation
     public Bitmap getDrawingCache() {
@@ -1124,47 +946,47 @@ public class ShadowView {
         return scaleY;
     }
 
-    @Implementation
-    public ViewTreeObserver getViewTreeObserver() {
-        if (viewTreeObserver == null) {
-            viewTreeObserver = newInstanceOf(ViewTreeObserver.class);
-        }
-        return viewTreeObserver;
-    }
+//    @Implementation
+//    public ViewTreeObserver getViewTreeObserver() {
+//        if (viewTreeObserver == null) {
+//            viewTreeObserver = newInstanceOf(ViewTreeObserver.class);
+//        }
+//        return viewTreeObserver;
+//    }
 
     @Implementation
     public void onAnimationEnd() {
     }
 
-    @Implementation
-    public void setTranslationX(float translationX) {
-        this.translationX = translationX;
-    }
-
-    @Implementation
-    public float getTranslationX() {
-        return translationX;
-    }
-
-    @Implementation
-    public void setTranslationY(float translationY) {
-        this.translationY = translationY;
-    }
-
-    @Implementation
-    public float getTranslationY() {
-        return translationY;
-    }
-
-    @Implementation
-    public void setAlpha(float alpha) {
-        this.alpha = alpha;
-    }
-
-    @Implementation
-    public float getAlpha() {
-        return alpha;
-    }
+//    @Implementation
+//    public void setTranslationX(float translationX) {
+//        this.translationX = translationX;
+//    }
+//
+//    @Implementation
+//    public float getTranslationX() {
+//        return translationX;
+//    }
+//
+//    @Implementation
+//    public void setTranslationY(float translationY) {
+//        this.translationY = translationY;
+//    }
+//
+//    @Implementation
+//    public float getTranslationY() {
+//        return translationY;
+//    }
+//
+//    @Implementation
+//    public void setAlpha(float alpha) {
+//        this.alpha = alpha;
+//    }
+//
+//    @Implementation
+//    public float getAlpha() {
+//        return alpha;
+//    }
 
     /*
      * Non-Android accessor.
@@ -1189,20 +1011,16 @@ public class ShadowView {
     	return touchDelegate;
     }
 
-    @Implementation
-    public void onAttachedToWindow() {
-        if (strict && attachedToWindow) throw new IllegalStateException("already attached!");
-        attachedToWindow = true;
-    }
-
-    @Implementation
-    public void onDetachedFromWindow() {
-        if (strict && !attachedToWindow) throw new IllegalStateException("not attached!");
-        attachedToWindow = false;
-    }
-
     public boolean isAttachedToWindow() {
-        return attachedToWindow;
+        try {
+            Field mAttachInfo = View.class.getDeclaredField("mAttachInfo");
+            mAttachInfo.setAccessible(true);
+            return mAttachInfo.get(realView) != null;
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void callOnAttachedToWindow() {
@@ -1235,6 +1053,14 @@ public class ShadowView {
 
     public int lastHapticFeedbackPerformed() {
         return hapticFeedbackPerformed;
+    }
+
+    public void setMyParent(ViewParent viewParent) {
+        directlyOn(realView, View.class, "assignParent", ViewParent.class).invoke(viewParent);
+    }
+
+    private View directly() {
+        return directlyOn(realView, View.class);
     }
 
     @SuppressWarnings({"UnusedDeclaration"})

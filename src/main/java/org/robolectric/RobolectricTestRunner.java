@@ -28,6 +28,7 @@ import org.robolectric.internal.ParallelUniverse;
 import org.robolectric.internal.ParallelUniverseInterface;
 import org.robolectric.res.Fs;
 import org.robolectric.res.FsFile;
+import org.robolectric.res.MergedResourceIndex;
 import org.robolectric.res.OverlayResourceLoader;
 import org.robolectric.res.PackageResourceLoader;
 import org.robolectric.res.ResourceLoader;
@@ -591,7 +592,6 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
         return resourceLoader;
     }
 
-    // this method must live on a InstrumentingClassLoader-loaded class, so it can't be on SdkEnvironment
     protected static ResourceLoader createAppResourceLoader(ResourceLoader systemResourceLoader, AndroidManifest appManifest) {
         List<PackageResourceLoader> appAndLibraryResourceLoaders = new ArrayList<PackageResourceLoader>();
         for (ResourcePath resourcePath : appManifest.getIncludedResourcePaths()) {

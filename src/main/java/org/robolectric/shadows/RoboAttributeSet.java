@@ -2,15 +2,21 @@ package org.robolectric.shadows;
 
 import android.util.AttributeSet;
 import android.view.View;
+import org.jetbrains.annotations.NotNull;
 import org.robolectric.res.Attribute;
 import org.robolectric.res.ResName;
 import org.robolectric.res.ResourceIndex;
 import org.robolectric.res.ResourceLoader;
+import org.robolectric.res.TypedResource;
 import org.robolectric.util.I18nException;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class RoboAttributeSet implements AttributeSet {
+    private static final Set<String> ALREADY_WARNED_ABOUT = new HashSet<String>();
+
     private final List<Attribute> attributes;
     private final ResourceLoader resourceLoader;
     private Class<? extends View> viewClass;
@@ -62,12 +68,16 @@ public class RoboAttributeSet implements AttributeSet {
     private int extractInt(String value, int defaultValue) {
         if (value == null) return defaultValue;
         if (value.startsWith("0x")) return Integer.parseInt(value.substring(2), 16);
-      try {
-        return Integer.parseInt(value);
-      } catch (NumberFormatException e) {
-        System.out.println("WARN: couldn't parse \"" + value + "\" as an integer");
-        return defaultValue;
-      }
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            synchronized (ALREADY_WARNED_ABOUT) {
+                if (ALREADY_WARNED_ABOUT.add(value)) {
+                    System.out.println("WARN: couldn't parse \"" + value + "\" as an integer");
+                }
+            }
+            return defaultValue;
+        }
     }
 
     public boolean isEnum(String namespace, String attribute) {
@@ -94,20 +104,31 @@ public class RoboAttributeSet implements AttributeSet {
 
     @Override
     public String getAttributeValue(String namespace, String attribute) {
-        Attribute attr = findByName(namespace, attribute);
-        return (attr != null) ? attr.value : null;
+        return dereference(findByName(namespace, attribute));
     }
 
     @Override
     public String getAttributeValue(int index) {
         try {
-            return attributes.get(index).value;
+            return dereference(attributes.get(index));
         } catch (IndexOutOfBoundsException e) {
             return null;
         }
     }
 
-  @Override
+    // todo: not this
+    private String dereference(Attribute attr) {
+        String value = (attr != null) ? attr.value : null;
+        while (value != null && isReference(value)) {
+            if ("@null".equals(value)) return null;
+            ResName resName = new ResName(ResName.qualifyResourceName(value.substring(1), attr.contextPackageName, null));
+            TypedResource value1 = resourceLoader.getValue(resName, ""); // todo: wrong!
+            value = value1.asString(); // todo: qualifiers are missing here!
+        }
+        return value;
+    }
+
+    @Override
     public String getPositionDescription() {
         throw new UnsupportedOperationException();
     }
@@ -230,5 +251,9 @@ public class RoboAttributeSet implements AttributeSet {
         } else {
             return Attribute.find(attributes, resourceId, resourceIndex);
         }
+    }
+
+    private boolean isReference(@NotNull String value) {
+        return value.startsWith("@");
     }
 }

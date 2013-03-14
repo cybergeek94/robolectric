@@ -165,6 +165,11 @@ public final class ShadowAssetManager {
         }
     }
 
+    @HiddenApi @Implementation
+    public final int createTheme() {
+        return 1;
+    }
+
     public FsFile getAssetsDirectory() {
         return appManifest.getAssetsDirectory();
     }

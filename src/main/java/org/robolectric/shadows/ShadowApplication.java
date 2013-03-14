@@ -51,7 +51,7 @@ public class ShadowApplication extends ShadowContextWrapper {
     static {
         // note that these are different!
         // They specify concrete classes within Robolectric for interfaces or abstract classes defined by Android
-        SYSTEM_SERVICE_MAP.put(Context.WINDOW_SERVICE, "org.robolectric.tester.android.view.TestWindowManager");
+        SYSTEM_SERVICE_MAP.put(Context.WINDOW_SERVICE, "org.robolectric.tester.android.view.RoboWindowManager");
         SYSTEM_SERVICE_MAP.put(Context.CLIPBOARD_SERVICE, "android.content.ClipboardManager");
         SYSTEM_SERVICE_MAP.put(Context.SENSOR_SERVICE, "android.hardware.TestSensorManager");
         SYSTEM_SERVICE_MAP.put(Context.VIBRATOR_SERVICE, "android.os.RoboVibrator");
@@ -73,6 +73,7 @@ public class ShadowApplication extends ShadowContextWrapper {
         SYSTEM_SERVICE_MAP.put(Context.INPUT_METHOD_SERVICE, "android.view.inputmethod.InputMethodManager");
         SYSTEM_SERVICE_MAP.put(Context.UI_MODE_SERVICE, "android.app.UiModeManager");
         SYSTEM_SERVICE_MAP.put(Context.DOWNLOAD_SERVICE, "android.app.DownloadManager");
+        SYSTEM_SERVICE_MAP.put(Context.TEXT_SERVICES_MANAGER_SERVICE, "android.view.textservice.TextServicesManager");
     }
 
     @RealObject private Application realApplication;

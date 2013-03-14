@@ -56,4 +56,13 @@ public class OverlayResourceLoader extends XResourceLoader {
         }
         return null;
     }
+
+    @Override public boolean providesFor(String namespace) {
+        for (PackageResourceLoader subResourceLoader : subResourceLoaders) {
+            if (subResourceLoader.providesFor(namespace)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

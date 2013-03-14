@@ -13,6 +13,7 @@ import org.robolectric.TestRunners;
 import org.robolectric.res.Attribute;
 
 import static java.util.Arrays.asList;
+import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.*;
 import static org.robolectric.util.TestUtil.TEST_PACKAGE;
 
@@ -58,7 +59,7 @@ public class ViewStubTest {
                 ), Robolectric.getShadowApplication().getResourceLoader(), null)
         );
 
-        assertEquals(R.id.include_id, viewStub.getInflatedId());
-        assertEquals(R.layout.media, viewStub.getLayoutResource());
+        assertThat(viewStub.getInflatedId()).isEqualTo(R.id.include_id);
+        assertThat(viewStub.getLayoutResource()).isEqualTo(R.layout.media);
     }
 }

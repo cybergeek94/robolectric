@@ -1,7 +1,6 @@
 package org.robolectric.shadows;
 
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,20 +27,6 @@ public class FrameLayoutTest {
     @Test
     public void testNotNull() {
         assertNotNull(frameLayout);
-    }
-
-    @Test
-    public void getLayoutParamsShouldReturnInstanceOfMarginLayoutParams() {
-        FrameLayout frameLayout = new FrameLayout(Robolectric.application);
-        ViewGroup.LayoutParams layoutParams = frameLayout.getLayoutParams();
-        assertThat(layoutParams).isInstanceOf(ViewGroup.MarginLayoutParams.class);
-    }
-
-    @Test
-    public void getLayoutParams_shouldReturnFrameLayoutParams() throws Exception {
-        ViewGroup.LayoutParams layoutParams = new FrameLayout(Robolectric.application).getLayoutParams();
-
-        assertThat(layoutParams).isInstanceOf(FrameLayout.LayoutParams.class);
     }
 
     @Test

@@ -8,7 +8,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.text.Selection;
@@ -24,7 +23,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.internal.RealObject;
-import org.robolectric.tester.android.view.TestWindow;
+import org.robolectric.tester.android.view.RoboWindow;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -45,7 +44,7 @@ public class ShadowActivity extends ShadowContextThemeWrapper {
     private Intent resultIntent;
     private Activity parent;
     private boolean finishWasCalled;
-    private TestWindow window;
+    private RoboWindow window;
 
     private List<IntentForResult> startedActivitiesForResults = new ArrayList<IntentForResult>();
 
@@ -306,7 +305,7 @@ public class ShadowActivity extends ShadowContextThemeWrapper {
     }
 
     /**
-     * Constructs a new Window (a {@link org.robolectric.tester.android.view.TestWindow}) if no window has previously been
+     * Constructs a new Window (a {@link org.robolectric.tester.android.view.RoboWindow}) if no window has previously been
      * set.
      *
      * @return the window associated with this Activity
@@ -314,12 +313,12 @@ public class ShadowActivity extends ShadowContextThemeWrapper {
     @Implementation
     public Window getWindow() {
         if (window == null) {
-            window = new TestWindow(realActivity);
+            window = new RoboWindow(realActivity);
         }
         return window;
     }
 
-    public void setWindow(TestWindow wind){
+    public void setWindow(RoboWindow wind){
     	window = wind;
     }
     
@@ -488,6 +487,10 @@ public class ShadowActivity extends ShadowContextThemeWrapper {
 
     public void resetKeyUpWasCalled() {
         onKeyUpWasCalled = false;
+    }
+
+    public void performLayout() {
+        shadowOf(getWindow()).performLayout();
     }
 
     /**

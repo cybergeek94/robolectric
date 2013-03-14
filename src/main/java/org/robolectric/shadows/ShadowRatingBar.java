@@ -6,37 +6,14 @@ import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.internal.RealObject;
 
-@Implements(value = RatingBar.class, inheritImplementationMethods = true)
+@Implements(value = RatingBar.class)
 public class ShadowRatingBar extends ShadowAbsSeekBar {
 
     @RealObject
     private RatingBar realRatingBar;
     private int mNumStars = 5;
     private OnRatingBarChangeListener listener;
-    
-    @Override public void applyAttributes() {
-        super.applyAttributes();
-        
-        setIsIndicator(attributeSet.getAttributeBooleanValue("android", "isIndicator", false));
-        final int numStars = attributeSet.getAttributeIntValue("android", "numStars", mNumStars);
-        final float rating = attributeSet.getAttributeFloatValue("android", "rating", -1);
-        final float stepSize = attributeSet.getAttributeFloatValue("android", "stepSize", -1);
-        
-        if (numStars > 0 && numStars != mNumStars) {
-            setNumStars(numStars);            
-        }
-        
-        if (stepSize >= 0) {
-            setStepSize(stepSize);
-        } else {
-            setStepSize(0.5f);
-        }
-        
-        if (rating >= 0) {
-            setRating(rating);
-        }
-    }
-    
+
     @Implementation
     public void setNumStars(final int numStars) {
         if (numStars <= 0) {
@@ -64,7 +41,7 @@ public class ShadowRatingBar extends ShadowAbsSeekBar {
     @Implementation
     public void setIsIndicator(boolean isIndicator) {
         mIsUserSeekable = !isIndicator;
-        setFocusable(!isIndicator);
+        realView.setFocusable(!isIndicator);
     }
     
     @Implementation

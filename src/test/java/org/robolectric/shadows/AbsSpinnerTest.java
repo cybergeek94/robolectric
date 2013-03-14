@@ -12,10 +12,10 @@ import android.widget.Spinner;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.Robolectric;
 import org.robolectric.TestRunners;
 
 import static org.fest.assertions.api.Assertions.assertThat;
+import static org.robolectric.Robolectric.shadowOf;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class AbsSpinnerTest {
@@ -30,7 +30,7 @@ public class AbsSpinnerTest {
         context = new Activity();
         adapterView = new Gallery(context);
         spinner = new Spinner(context);
-        shadowSpinner = (ShadowAbsSpinner) Robolectric.shadowOf(spinner);
+        shadowSpinner = (ShadowAbsSpinner) shadowOf(spinner);
         String [] testItems = {"foo", "bar"};
         arrayAdapter = new MyArrayAdapter(this.context, testItems);
     }

@@ -4,6 +4,7 @@ import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import org.robolectric.Robolectric;
@@ -97,8 +98,7 @@ public class ShadowTypedArray implements UsesResources {
         ResName resName = getResName(index);
         if (resName == null) return defValue;
         String value = values.getAttributeValue(resName.namespace, resName.name);
-        if (isEmpty(value)) return defValue;
-        if (isReference(value)) {
+        if (value == null || isReference(value)) {
             int attributeResourceValue = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
             if (attributeResourceValue != -1) {
                 return resources.getColor(attributeResourceValue);
@@ -115,8 +115,7 @@ public class ShadowTypedArray implements UsesResources {
         ResName resName = getResName(index);
         if (resName == null) return null;
         String value = values.getAttributeValue(resName.namespace, resName.name);
-        if (isEmpty(value)) return null;
-        if (isReference(value)) {
+        if (value == null || isReference(value)) {
             int attributeResourceValue = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
             if (attributeResourceValue != -1) {
                 return resources.getColorStateList(attributeResourceValue);
@@ -158,6 +157,10 @@ public class ShadowTypedArray implements UsesResources {
     public Drawable getDrawable(int index) {
         ResName resName = getResName(index);
         if (resName == null) return null;
+        String textValue = values.getAttributeValue(resName.namespace, resName.name);
+        if (textValue != null && textValue.startsWith("#")) {
+            return new ColorDrawable(Color.parseColor(textValue));
+        }
         int drawableId = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
         return drawableId == -1 ? null : resources.getDrawable(drawableId);
     }
@@ -181,9 +184,10 @@ public class ShadowTypedArray implements UsesResources {
 
     @Implementation
     public boolean hasValue(int index) {
-        // todo ResName resName = getResName(index);
-        //String attributeValue = values.getAttributeValue(getResName(index).namespace, getResName(index).name);
-        return true;
+        ResName resName = getResName(index);
+        if (resName == null) return false;
+        String str = values.getAttributeValue(resName.namespace, resName.name);
+        return str != null;
     }
 
     @Implementation
@@ -224,10 +228,6 @@ public class ShadowTypedArray implements UsesResources {
         Integer[] integers = new Integer[ints.length];
         for (int i = 0; i < ints.length; i++) integers[i] = ints[i];
         return integers;
-    }
-
-    private boolean isEmpty(String value) {
-        return value == null || value.length() == 0;
     }
 
     private boolean isReference(String value) {

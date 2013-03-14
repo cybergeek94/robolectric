@@ -88,9 +88,15 @@ public class RoboAttributeSetTest {
     }
 
     @Test
+    public void getAttributeResourceValue_shouldReturnDefaultValueWhenAttributeIsNull() throws Exception {
+        createTestAttributeSet(new Attribute(TEST_PACKAGE + ":attr/message", "@null", TEST_PACKAGE));
+        assertThat(roboAttributeSet.getAttributeResourceValue(TEST_PACKAGE, "message", -1)).isEqualTo(-1);
+    }
+
+    @Test
     public void getAttributeResourceValue_shouldReturnDefaultValueWhenNotInAttributeSet() throws Exception {
         createTestAttributeSet();
-        assertThat(roboAttributeSet.getAttributeResourceValue("com.some.namespace", "message", -1)).isEqualTo(-1);
+        assertThat(roboAttributeSet.getAttributeResourceValue(TEST_PACKAGE, "message", -1)).isEqualTo(-1);
     }
 
     @Test
@@ -118,9 +124,21 @@ public class RoboAttributeSetTest {
     }
 
     @Test
+    public void getAttributeValue_byNameWithReference_shouldReturnValueFromAttribute() throws Exception {
+        createTestAttributeSet(new Attribute(TEST_PACKAGE + ":attr/isSugary", "@string/ok", TEST_PACKAGE));
+        assertThat(roboAttributeSet.getAttributeValue(TEST_PACKAGE, "isSugary")).isEqualTo("ok yup!");
+    }
+
+    @Test
     public void getAttributeValue_byId_shouldReturnValueFromAttribute() throws Exception {
         createTestAttributeSet(new Attribute(TEST_PACKAGE + ":attr/isSugary", "oh heck yeah", TEST_PACKAGE));
         assertThat(roboAttributeSet.getAttributeValue(0)).isEqualTo("oh heck yeah");
+    }
+
+    @Test
+    public void getAttributeValue_byIdWithReference_shouldReturnValueFromAttribute() throws Exception {
+        createTestAttributeSet(new Attribute(TEST_PACKAGE + ":attr/isSugary", "@string/ok", TEST_PACKAGE));
+        assertThat(roboAttributeSet.getAttributeValue(0)).isEqualTo("ok yup!");
     }
 
     @Test
@@ -233,6 +251,15 @@ public class RoboAttributeSetTest {
         createTestAttributeSet(new Attribute("org.robolectric.lib1:attr/offsetX", "1", TEST_PACKAGE));
         assertThat(roboAttributeSet.getAttributeValue("org.robolectric.lib1", "offsetX")).isEqualTo("1");
         assertThat(roboAttributeSet.getAttributeValue("org.robolectric.lib2", "offsetX")).isEqualTo("1");
+    }
+
+    @Test public void getAttributeNameResource() throws Exception {
+        createTestAttributeSet(
+                new Attribute("org.robolectric.lib1:attr/message", "1", TEST_PACKAGE),
+                new Attribute("org.robolectric.lib1:attr/keycode", "1", TEST_PACKAGE)
+                );
+        assertThat(roboAttributeSet.getAttributeNameResource(0)).isEqualTo(0); // no id for attr.message for some reason...
+        assertThat(roboAttributeSet.getAttributeNameResource(1)).isEqualTo(R.attr.keycode);
     }
 
     private void createTestAttributeSet(Attribute... attributes) {

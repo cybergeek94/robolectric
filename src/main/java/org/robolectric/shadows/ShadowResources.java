@@ -1,7 +1,6 @@
 package org.robolectric.shadows;
 
 import android.content.res.AssetManager;
-import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
@@ -10,6 +9,7 @@ import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.Display;
+import org.jetbrains.annotations.NotNull;
 import org.robolectric.Robolectric;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
@@ -30,8 +30,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Locale;
 
+import static org.fest.reflect.core.Reflection.field;
 import static org.robolectric.Robolectric.directlyOn;
-import static org.robolectric.Robolectric.newInstanceOf;
 import static org.robolectric.Robolectric.shadowOf;
 
 /**
@@ -94,14 +94,34 @@ public class ShadowResources {
         return index;
     }
 
+    @Implementation
+    public String getResourceName(int resId) throws Resources.NotFoundException {
+        return getResName(resId).getFullyQualifiedName();
+    }
+
+    @Implementation
+    public String getResourcePackageName(int resId) throws Resources.NotFoundException {
+        return getResName(resId).namespace;
+    }
+
+    @Implementation
+    public String getResourceTypeName(int resId) throws Resources.NotFoundException {
+        return getResName(resId).type;
+    }
+
+    @Implementation
+    public String getResourceEntryName(int resId) throws Resources.NotFoundException {
+        return getResName(resId).name;
+    }
+
     private boolean isEmpty(String s) {
         return s == null || s.length() == 0;
     }
 
-    private ResName getResName(int id) {
+    private @NotNull ResName getResName(int id) {
         ResName resName = resourceLoader.getResourceIndex().getResName(id);
         if (resName == null) {
-            throw new Resources.NotFoundException("couldn't find a name for resource id " + id);
+            throw new Resources.NotFoundException("Unable to find resource ID #0x" + Integer.toHexString(id));
         }
         return resName;
     }
@@ -110,10 +130,15 @@ public class ShadowResources {
         return shadowOf(realResources.getConfiguration()).getQualifiers();
     }
 
-    @Implementation
-    public ColorStateList getColorStateList(int id) {
-        return new ColorStateList(new int[0][0], new int[0]);
-    }
+//    @Implementation
+//    public ColorStateList getColorStateList(int id) {
+//        String colorValue = resourceLoader.getColorValue(getResName(id), getQualifiers());
+//        if (colorValue != null) {
+//            return ColorStateList.valueOf(Color.parseColor(colorValue));
+//        } else {
+//            return new ColorStateList(new int[0][0], new int[0]);
+//        }
+//    }
 
     @Implementation
     public String getQuantityString(int id, int quantity, Object... formatArgs) throws Resources.NotFoundException {
@@ -191,14 +216,7 @@ public class ShadowResources {
         if (document == null) {
             throw new Resources.NotFoundException();
         }
-        XmlFileBuilder xmlFileBuilder = new XmlFileBuilder();
-        XmlResourceParser parser = xmlFileBuilder.getXml(document);
-        return parser;
-    }
-
-    @Implementation
-    public final android.content.res.Resources.Theme newTheme() {
-        return inject(realResources, newInstanceOf(Resources.Theme.class));
+        return new XmlFileBuilder().getXml(document);
     }
 
     public ResourceLoader getResourceLoader() {
@@ -210,12 +228,9 @@ public class ShadowResources {
     }
 
     @Implements(Resources.Theme.class)
-    public static class ShadowTheme implements UsesResources {
+    public static class ShadowTheme {
+        @RealObject Resources.Theme realTheme;
         protected Resources resources;
-
-        public void injectResources(Resources resources) {
-            this.resources = resources;
-        }
 
         @Implementation
         public TypedArray obtainStyledAttributes(int[] attrs) {
@@ -229,11 +244,17 @@ public class ShadowResources {
 
         @Implementation
         public TypedArray obtainStyledAttributes(AttributeSet set, int[] attrs, int defStyleAttr, int defStyleRes) {
+            Resources resources = getResources();
             if (set == null) {
                 set = new RoboAttributeSet(new ArrayList<Attribute>(), shadowOf(resources).getResourceLoader(), null);
             }
 
             return ShadowTypedArray.create(resources, set, attrs);
+        }
+
+        Resources getResources() {
+            // ugh
+            return field("this$0").ofType(Resources.class).in(realTheme).get();
         }
     }
 
