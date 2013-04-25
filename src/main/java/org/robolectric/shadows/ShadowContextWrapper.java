@@ -1,5 +1,6 @@
 package org.robolectric.shadows;
 
+import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
@@ -38,24 +39,18 @@ import java.util.Set;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static android.database.sqlite.SQLiteDatabase.CursorFactory;
-import static org.robolectric.Robolectric.directlyOn;
 import static org.robolectric.Robolectric.shadowOf;
 
 @SuppressWarnings({"UnusedDeclaration"})
 @Implements(ContextWrapper.class)
 public class ShadowContextWrapper extends ShadowContext {
     @RealObject private ContextWrapper realContextWrapper;
-    protected Context baseContext;
 
     private PackageManager packageManager;
 
     private String appName;
     private String packageName;
     private Set<String> grantedPermissions = new HashSet<String>();
-
-    public void __constructor__(Context baseContext) {
-        this.baseContext = baseContext;
-    }
 
     @Implementation
     public int checkCallingPermission(String permission) {
@@ -69,12 +64,7 @@ public class ShadowContextWrapper extends ShadowContext {
 
     @Implementation
     public Context getApplicationContext() {
-        return baseContext.getApplicationContext();
-    }
-
-    @Implementation
-    public Resources.Theme getTheme() {
-        return getResources().newTheme();
+        return realContextWrapper.getBaseContext().getApplicationContext();
     }
 
     @Implementation
@@ -211,6 +201,8 @@ public class ShadowContextWrapper extends ShadowContext {
         appInfo.name = appName;
         appInfo.packageName = packageName;
         appInfo.processName = packageName;
+        AndroidManifest appManifest = shadowOf((Application) getApplicationContext()).getAppManifest();
+        appInfo.targetSdkVersion = appManifest.getTargetSdkVersion();
         return appInfo;
     }
 
@@ -344,17 +336,6 @@ public class ShadowContextWrapper extends ShadowContext {
     @Implementation
     public Looper getMainLooper() {
         return getShadowApplication().getMainLooper();
-    }
-
-    @Implementation
-    public Context getBaseContext() {
-        return baseContext;
-    }
-
-    @Implementation
-    public void attachBaseContext(Context context) {
-        baseContext = context;
-        directlyOn(realContextWrapper, ContextWrapper.class, "attachBaseContext", Context.class).invoke(context);
     }
 
     public ShadowApplication getShadowApplication() {

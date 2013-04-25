@@ -183,6 +183,7 @@ public final class R {
         public static final int fragment_contents = 0x1060c;
         public static final int lam_outer = 0x1060d;
         public static final int lam_inner = 0x1060e;
+        public static final int styles_button_layout = 0x1060f;
     }
 
     public static final class anim {
@@ -268,5 +269,6 @@ public final class R {
 
     public static final class style {
         public static final int FancyStyle = 0x10f00;
+        public static final int Theme_Robolectric = 0x10f01;
     }
 }

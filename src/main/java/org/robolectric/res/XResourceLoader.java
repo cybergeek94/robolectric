@@ -17,6 +17,7 @@ abstract class XResourceLoader implements ResourceLoader {
     final ResBundle<PreferenceNode> preferenceData = new ResBundle<PreferenceNode>();
     final ResBundle<Document> xmlDocuments = new ResBundle<Document>();
     final ResBundle<FsFile> rawResources = new ResBundle<FsFile>();
+    final ResBundle<StyleData> styleData = new ResBundle<StyleData>();
     private final ResourceIndex resourceIndex;
     boolean isInitialized = false;
 
@@ -45,6 +46,7 @@ abstract class XResourceLoader implements ResourceLoader {
         preferenceData.makeImmutable();
         xmlDocuments.makeImmutable();
         rawResources.makeImmutable();
+        styleData.makeImmutable();
     }
 
     @Override
@@ -88,6 +90,11 @@ abstract class XResourceLoader implements ResourceLoader {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override public Style getStyle(ResName resName, String qualifiers) {
+        final StyleData styleData = this.styleData.get(resName, qualifiers);
+        return new StyleResolver(styleData);
     }
 
     @Override
@@ -162,6 +169,23 @@ abstract class XResourceLoader implements ResourceLoader {
         @Override
         String convert(String rawValue) {
             return rawValue;
+        }
+    }
+
+    private class StyleResolver implements Style {
+        private final StyleData leafStyle;
+
+        public StyleResolver(StyleData styleData) {
+            this.leafStyle = styleData;
+        }
+
+        @Override public String getAttrValue(String name) {
+            StyleData currentStyle = leafStyle;
+            String value = null;
+            while (currentStyle != null && (value = currentStyle.getAttrValue(name)) == null) {
+                String parent = currentStyle.getParent();
+                currentStyle = parent == null ? null : styleData.get(new ResName(parent);
+            }
         }
     }
 }

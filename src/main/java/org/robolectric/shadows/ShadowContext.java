@@ -4,13 +4,6 @@ import android.app.Application;
 import android.content.Context;
 import android.content.res.Resources;
 import android.view.View;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.List;
-import java.util.UUID;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.internal.RealObject;
@@ -18,6 +11,15 @@ import org.robolectric.res.Attribute;
 import org.robolectric.res.ResName;
 import org.robolectric.res.ResourceLoader;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
+
+import static org.fest.reflect.core.Reflection.method;
 import static org.robolectric.Robolectric.shadowOf;
 
 /**
@@ -59,9 +61,6 @@ abstract public class ShadowContext {
     public String getString(int resId, Object... formatArgs) {
         return realContext.getResources().getString(resId, formatArgs);
     }
-
-    @Implementation
-    abstract public Resources.Theme getTheme();
 
     public RoboAttributeSet createAttributeSet(List<Attribute> attributes, Class<? extends View> viewClass) {
         RoboAttributeSet attributeSet = new RoboAttributeSet(attributes, getResourceLoader(), viewClass);
@@ -190,5 +189,12 @@ abstract public class ShadowContext {
 
     public ShadowApplication getShadowApplication() {
         return shadowApplication;
+    }
+
+    public void callAttachBaseContext(Context context) {
+        method("attachBaseContext")
+                .withParameterTypes(Context.class)
+                .in(realContext)
+                .invoke(context);
     }
 }

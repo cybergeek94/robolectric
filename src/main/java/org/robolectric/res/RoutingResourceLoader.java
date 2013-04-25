@@ -51,6 +51,10 @@ public class RoutingResourceLoader implements ResourceLoader {
         return pickFor(resName).getRawValue(resName);
     }
 
+    @Override public Style getStyle(ResName resName, String qualifiers) {
+        return pickFor(resName).getStyle(resName, qualifiers);
+    }
+
     @Override
     public PreferenceNode getPreferenceNode(ResName resName, String qualifiers) {
         return pickFor(resName).getPreferenceNode(resName, qualifiers);

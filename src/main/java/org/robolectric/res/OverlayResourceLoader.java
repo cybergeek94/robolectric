@@ -30,6 +30,7 @@ public class OverlayResourceLoader extends XResourceLoader {
             xmlDocuments.mergeLibraryStyle(subResourceLoader.xmlDocuments, packageName);
             rawResources.mergeLibraryStyle(subResourceLoader.rawResources, packageName);
             data.mergeLibraryStyle(subResourceLoader.data, packageName);
+            styleData.mergeLibraryStyle(subResourceLoader.styleData, packageName);
         }
     }
 

@@ -21,6 +21,7 @@ import org.robolectric.res.ResName;
 import org.robolectric.res.ResType;
 import org.robolectric.res.ResourceIndex;
 import org.robolectric.res.ResourceLoader;
+import org.robolectric.res.Style;
 import org.robolectric.res.TypedResource;
 import org.robolectric.res.builder.DrawableBuilder;
 import org.robolectric.res.builder.XmlFileBuilder;
@@ -231,6 +232,12 @@ public class ShadowResources {
     public static class ShadowTheme {
         @RealObject Resources.Theme realTheme;
         protected Resources resources;
+        private int styleResourceId;
+
+        @Implementation
+        public void applyStyle(int resid, boolean force) {
+            this.styleResourceId = resid;
+        }
 
         @Implementation
         public TypedArray obtainStyledAttributes(int[] attrs) {
@@ -245,8 +252,39 @@ public class ShadowResources {
         @Implementation
         public TypedArray obtainStyledAttributes(AttributeSet set, int[] attrs, int defStyleAttr, int defStyleRes) {
             Resources resources = getResources();
+
+            ResourceLoader resourceLoader = shadowOf(resources).getResourceLoader();
+            String qualifiers = shadowOf(resources).getQualifiers();
+
+            // Load the style for the theme we represent. E.g. "@style/Theme.Robolectric"
+            ResName themeStyleName = resourceLoader.getResourceIndex().getResName(styleResourceId);
+            Style theme = resourceLoader.getStyle(themeStyleName, qualifiers);
+
+            // Load the theme attribute for the default style attributes. E.g., attr/buttonStyle
+            ResName defStyleName = resourceLoader.getResourceIndex().getResName(defStyleAttr);
+
+            // Load the style for the default style attribute. E.g. "@style/Widget.Robolectric.Button";
+            String defStyleNameValue = theme.getAttrValue(defStyleName.namespace + ":" + defStyleName.name);
+            Style defStyle = resourceLoader.getStyle(new ResName(defStyleName.namespace, "style", defStyleName.name), qualifiers);
+
+            for (int i = 0; i < attrs.length; i++) {
+                int attr = attrs[i];
+                ResName attrName = resourceLoader.getResourceIndex().getResName(attr);
+                String attrValue;
+
+                // if attr in attribute set, use its value
+                // TODO look for attrvalue in attriburte set
+
+                // else if attr in defStyle, use its value
+//                if (defStyle != null) {
+//                    attrValue = defStyle.getAttrValue(attrName);
+//                }
+
+
+            }
+
             if (set == null) {
-                set = new RoboAttributeSet(new ArrayList<Attribute>(), shadowOf(resources).getResourceLoader(), null);
+                set = new RoboAttributeSet(new ArrayList<Attribute>(), resourceLoader, null);
             }
 
             return ShadowTypedArray.create(resources, set, attrs);

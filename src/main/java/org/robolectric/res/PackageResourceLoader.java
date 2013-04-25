@@ -38,6 +38,7 @@ public class PackageResourceLoader extends XResourceLoader {
                 new PluralResourceLoader(pluralsData),
                 new ValueResourceLoader(data, "/resources/string", "string", ResType.CHAR_SEQUENCE),
                 new ValueResourceLoader(data, "/resources/string-array", "array", ResType.CHAR_SEQUENCE_ARRAY),
+                new StyleResourceLoader(styleData),
                 attrResourceLoader
         );
 

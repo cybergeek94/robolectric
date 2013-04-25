@@ -157,11 +157,11 @@ public class ContextWrapperTest {
     public void shouldReturnAContext() {
         assertThat(contextWrapper.getBaseContext()).isNotNull();
     	ShadowContextWrapper shContextWrapper = Robolectric.shadowOf(contextWrapper);
-    	shContextWrapper.attachBaseContext(null);
+    	shContextWrapper.callAttachBaseContext(null);
         assertThat(contextWrapper.getBaseContext()).isNull();
 
     	Activity baseContext = new Activity();
-    	shContextWrapper.attachBaseContext(baseContext);
+    	shContextWrapper.callAttachBaseContext(baseContext);
         assertThat(contextWrapper.getBaseContext()).isSameAs((Context) baseContext);
     }
 

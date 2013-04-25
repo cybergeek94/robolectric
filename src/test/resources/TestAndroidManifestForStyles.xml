@@ -3,7 +3,6 @@
           package="org.robolectric">
     <uses-sdk android:targetSdkVersion="16"/>
 
-    <!-- todo: get @Config(manifest=xxx) working -->
     <application android:theme="@style/Theme.Robolectric">
         <activity android:name="org.robolectric.shadows.ThemeTest.TestActivity"/>
     </application>

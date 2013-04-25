@@ -20,6 +20,8 @@ public interface ResourceLoader {
 
     InputStream getRawValue(ResName resName);
 
+    Style getStyle(ResName defStyleName, String qualifiers);
+
     PreferenceNode getPreferenceNode(ResName resName, String qualifiers);
 
     ResourceIndex getResourceIndex();
