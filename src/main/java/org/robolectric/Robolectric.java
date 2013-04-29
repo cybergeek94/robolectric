@@ -173,6 +173,7 @@ import org.fest.reflect.method.Invoker;
 import org.robolectric.bytecode.RobolectricInternals;
 import org.robolectric.bytecode.ShadowWrangler;
 import org.robolectric.res.ResourceLoader;
+import org.robolectric.res.builder.RobolectricPackageManager;
 import org.robolectric.shadows.HttpResponseGenerator;
 import org.robolectric.shadows.ShadowAbsListView;
 import org.robolectric.shadows.ShadowAbsSeekBar;
@@ -353,8 +354,10 @@ import java.util.List;
 import static org.fest.reflect.core.Reflection.method;
 
 public class Robolectric {
-    public static Application application;
     public static final int DEFAULT_SDK_VERSION = 16;
+
+    public static Application application;
+    public static RobolectricPackageManager packageManager;
 
     public static <T> T newInstanceOf(Class<T> clazz) {
         return RobolectricInternals.newInstanceOf(clazz);

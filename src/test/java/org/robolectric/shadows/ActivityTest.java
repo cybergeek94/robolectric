@@ -183,6 +183,7 @@ public class ActivityTest {
                 transcript.add("onContentChanged was called; title is \"" + shadowOf(findViewById(R.id.title)).innerText() + "\"");
             }
         };
+        shadowOf(customActivity).callAttachBaseContext(Robolectric.application);
         customActivity.setContentView(R.layout.main);
         transcript.assertEventsSoFar("onContentChanged was called; title is \"Main Layout\"");
     }

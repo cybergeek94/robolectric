@@ -1,7 +1,6 @@
 package org.robolectric.res.builder;
 
 import android.content.ComponentName;
-import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
@@ -16,13 +15,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class RobolectricPackageManager extends StubPackageManager {
 
-    private Map<String, PackageInfo> packageList;
+    private final Map<String, AndroidManifest> manifests = new LinkedHashMap<String, AndroidManifest>();
+    private final Map<String, PackageInfo> packageList = new LinkedHashMap<String, PackageInfo>();
     private Map<Intent, List<ResolveInfo>> resolveInfoForIntent = new HashMap<Intent, List<ResolveInfo>>();
     private Map<ComponentName, ComponentState> componentList = new HashMap<ComponentName, ComponentState>();
     private Map<ComponentName, Drawable> drawableList = new HashMap<ComponentName, Drawable>();
@@ -30,15 +31,7 @@ public class RobolectricPackageManager extends StubPackageManager {
     private Map<IntentFilter, ComponentName> preferredActivities = new HashMap<IntentFilter, ComponentName>();
     private Map<Pair<String, Integer>, Drawable> drawables = new HashMap<Pair<String, Integer>, Drawable>();
 
-    private ContextWrapper contextWrapper;
-    private AndroidManifest androidManifest;
     private ApplicationInfo applicationInfo;
-
-    public RobolectricPackageManager(ContextWrapper contextWrapper, AndroidManifest androidManifest) {
-        this.contextWrapper = contextWrapper;
-        this.androidManifest = androidManifest;
-        initializePackageInfo();
-    }
 
     @Override
     public PackageInfo getPackageInfo(String packageName, int flags) throws NameNotFoundException {
@@ -51,8 +44,9 @@ public class RobolectricPackageManager extends StubPackageManager {
 
     @Override
     public ApplicationInfo getApplicationInfo(String packageName, int flags) throws NameNotFoundException {
+        AndroidManifest androidManifest = manifests.get(packageName);
 
-        if (androidManifest.getPackageName().equals(packageName)) {
+        if (androidManifest != null) {
             if (applicationInfo == null) {
                 applicationInfo = new ApplicationInfo();
                 applicationInfo.flags = androidManifest.getApplicationFlags();
@@ -245,17 +239,13 @@ public class RobolectricPackageManager extends StubPackageManager {
         systemFeatureList.put(name, supported);
     }
 
-    private void initializePackageInfo() {
-        if (packageList != null) {
-            return;
-        }
+    public void addManifest(AndroidManifest androidManifest) {
+        manifests.put(androidManifest.getPackageName(), androidManifest);
 
         PackageInfo packageInfo = new PackageInfo();
-        packageInfo.packageName = contextWrapper.getPackageName();
+        packageInfo.packageName = androidManifest.getPackageName();
         packageInfo.versionName = androidManifest.getVersionName();
         packageInfo.versionCode = androidManifest.getVersionCode();
-
-        packageList = new HashMap<String, PackageInfo>();
         addPackage(packageInfo);
     }
 

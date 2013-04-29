@@ -255,9 +255,12 @@ public class ShadowResources {
         @Implementation
         public TypedArray obtainStyledAttributes(AttributeSet set, int[] attrs, int defStyleAttr, int defStyleRes) {
             Resources resources = getResources();
-
             ResourceLoader resourceLoader = shadowOf(resources).getResourceLoader();
             String qualifiers = shadowOf(resources).getQualifiers();
+
+            if (set == null) {
+                set = new RoboAttributeSet(new ArrayList<Attribute>(), resourceLoader, null);
+            }
 
             // Load the style for the theme we represent. E.g. "@style/Theme.Robolectric"
             ResName themeStyleName = resourceLoader.getResourceIndex().getResName(styleResourceId);
@@ -284,10 +287,6 @@ public class ShadowResources {
 //                }
 
 
-            }
-
-            if (set == null) {
-                set = new RoboAttributeSet(new ArrayList<Attribute>(), resourceLoader, null);
             }
 
             return ShadowTypedArray.create(resources, set, attrs);

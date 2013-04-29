@@ -26,7 +26,6 @@ import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.internal.RealObject;
 import org.robolectric.res.ResourceLoader;
-import org.robolectric.res.builder.RobolectricPackageManager;
 import org.robolectric.tester.org.apache.http.FakeHttpLayer;
 import org.robolectric.util.Scheduler;
 
@@ -126,7 +125,6 @@ public class ShadowApplication extends ShadowContextWrapper {
             setPackageName(appManifest.getPackageName());
             setApplicationName(appManifest.getApplicationName());
 
-            setPackageManager(new RobolectricPackageManager(realApplication, appManifest));
             this.registerBroadcastReceivers(appManifest);
         }
     }

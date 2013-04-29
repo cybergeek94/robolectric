@@ -12,6 +12,7 @@ import org.robolectric.shadows.ShadowActivity;
 import org.robolectric.shadows.ShadowActivityGroup;
 import org.robolectric.shadows.ShadowActivityInfo;
 import org.robolectric.shadows.ShadowActivityManager;
+import org.robolectric.shadows.ShadowActivityThread;
 import org.robolectric.shadows.ShadowAdapterView;
 import org.robolectric.shadows.ShadowAddress;
 import org.robolectric.shadows.ShadowAlarmManager;
@@ -62,6 +63,7 @@ import org.robolectric.shadows.ShadowContentResolver;
 import org.robolectric.shadows.ShadowContentUris;
 import org.robolectric.shadows.ShadowContentValues;
 import org.robolectric.shadows.ShadowContext;
+import org.robolectric.shadows.ShadowContextImpl;
 import org.robolectric.shadows.ShadowContextThemeWrapper;
 import org.robolectric.shadows.ShadowContextWrapper;
 import org.robolectric.shadows.ShadowCookieManager;
@@ -264,6 +266,7 @@ public class RobolectricBase {
             ShadowActivityInfo.class,
             ShadowActivityGroup.class,
             ShadowActivityManager.class,
+            ShadowActivityThread.class,
             ShadowAdapterView.class,
             ShadowAddress.class,
             ShadowAlarmManager.class,
@@ -317,6 +320,7 @@ public class RobolectricBase {
             ShadowContentUris.class,
             ShadowContentValues.class,
             ShadowContext.class,
+            ShadowContextImpl.class,
             ShadowContextWrapper.class,
             ShadowContextThemeWrapper.class,
             ShadowCookieManager.class,
