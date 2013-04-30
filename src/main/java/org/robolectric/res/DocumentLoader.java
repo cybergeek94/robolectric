@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 public class DocumentLoader {
-    public static boolean DEBUG_PERF = false;
+    public static boolean DEBUG_PERF = true;
     private Map<String, Long> perfResponsibleParties = new HashMap<String, Long>();
 
     private static final FsFile.Filter ENDS_WITH_XML = new FsFile.Filter() {

@@ -8,7 +8,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.TouchDelegate;
@@ -239,7 +238,7 @@ public class ShadowView {
     public int getBackgroundResourceId() {
         Drawable drawable = realView.getBackground();
         return drawable instanceof BitmapDrawable
-                ? shadowOf(((BitmapDrawable) drawable).getBitmap()).getLoadedFromResourceId()
+                ? shadowOf(((BitmapDrawable) drawable).getBitmap()).getCreatedFromResId()
                 : -1;
     }
 

@@ -15,7 +15,7 @@ public class DrawableAssert<T extends Drawable> extends AbstractAssert<DrawableA
     public void isResource(int resourceId) {
         Assertions.assertThat(actual).isInstanceOf(BitmapDrawable.class);
         BitmapDrawable bitmapDrawable = (BitmapDrawable) actual;
-        assertThat(shadowOf(bitmapDrawable.getBitmap()).getLoadedFromResourceId())
+        assertThat(shadowOf(bitmapDrawable.getBitmap()).getCreatedFromResId())
                 .isEqualTo(resourceId);
     }
 }

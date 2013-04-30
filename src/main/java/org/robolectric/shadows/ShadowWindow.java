@@ -1,6 +1,6 @@
 package org.robolectric.shadows;
 
-import android.content.Context;
+import android.app.Activity;
 import android.view.Window;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
@@ -17,8 +17,8 @@ public class ShadowWindow {
     private int flags;
 //    private Context context;
 
-    public static Window create(Context context) {
-        return new RoboWindow(context);
+    public static Window create(Activity activity) {
+        return new RoboWindow(activity.getBaseContext());
     }
 
 //    public void __constructor__(android.content.Context context) {

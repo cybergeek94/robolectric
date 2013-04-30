@@ -24,10 +24,12 @@ import static org.junit.Assert.assertNull;
 @RunWith(TestRunners.WithDefaults.class)
 public class TypedArrayTest {
     private Context context;
+    private Resources resources;
 
     @Before
     public void setUp() throws Exception {
         context = TestUtil.buildActivity(Activity.class).create().get();
+        resources = Robolectric.application.getResources();
     }
 
     @Test
@@ -52,7 +54,6 @@ public class TypedArrayTest {
 
     @Test
     public void getResourceId_shouldReturnActualValue() throws Exception {
-        Resources resources = Robolectric.application.getResources();
         TypedArray typedArray = ShadowTypedArray.create(resources,
                 asList(new Attribute("android:attr/id", "@+id/snippet_text", TestUtil.TEST_PACKAGE)),
                 new int[]{android.R.attr.id});
@@ -60,13 +61,33 @@ public class TypedArrayTest {
     }
 
     @Test
+    public void getFraction_shouldReturnDefaultValue() throws Exception {
+        assertThat(context.obtainStyledAttributes(new int[]{android.R.attr.width}).getDimension(0, -1f)).isEqualTo(-1f);
+    }
+
+    @Test
+    public void getFraction_shouldReturnGivenValue() throws Exception {
+        TypedArray typedArray = ShadowTypedArray.create(resources,
+                asList(new Attribute(TestUtil.SYSTEM_PACKAGE + ":attr/width", "50%", TestUtil.SYSTEM_PACKAGE)),
+                new int[] {android.R.attr.width});
+        assertThat(typedArray.getFraction(0, 100, 1, -1)).isEqualTo(50f);
+    }
+
+    @Test
     public void getDimension_shouldReturnDefaultValue() throws Exception {
-        assertThat(context.obtainStyledAttributes(new int[]{android.R.attr.alpha}).getDimension(0, -1f)).isEqualTo(-1f);
+        assertThat(context.obtainStyledAttributes(new int[]{android.R.attr.width}).getDimension(0, -1f)).isEqualTo(-1f);
+    }
+
+    @Test
+    public void getDimension_shouldReturnGivenValue() throws Exception {
+        TypedArray typedArray = ShadowTypedArray.create(resources,
+                asList(new Attribute(TestUtil.SYSTEM_PACKAGE + ":attr/width", "50%", TestUtil.SYSTEM_PACKAGE)),
+                new int[] {android.R.attr.width});
+        assertThat(typedArray.getDimension(0, -1)).isEqualTo(50f);
     }
 
     @Test
     public void getDrawable_withExplicitColorValue_shouldReturnColorDrawable() throws Exception {
-        Resources resources = Robolectric.application.getResources();
         TypedArray typedArray = ShadowTypedArray.create(resources,
                 asList(new Attribute("android:attr/background", "#ff777777", TestUtil.TEST_PACKAGE)),
                 new int[] {android.R.attr.background});
@@ -75,7 +96,6 @@ public class TypedArrayTest {
 
     @Test
     public void getTextArray_whenNoSuchAttribute_shouldReturnNull() throws Exception {
-        Resources resources = Robolectric.application.getResources();
         TypedArray typedArray = ShadowTypedArray.create(resources,
                 asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/keycode", "@array/greetings", TestUtil.TEST_PACKAGE)),
                 new int[]{R.attr.items});
@@ -84,7 +104,6 @@ public class TypedArrayTest {
 
     @Test
     public void getTextArray_shouldReturnValues() throws Exception {
-        Resources resources = Robolectric.application.getResources();
         TypedArray typedArray = ShadowTypedArray.create(resources,
                 asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/items", "@array/greetings", TestUtil.TEST_PACKAGE)),
                 new int[]{R.attr.items});
@@ -92,7 +111,6 @@ public class TypedArrayTest {
     }
 
     @Test public void hasValue_withValue() throws Exception {
-        Resources resources = Robolectric.application.getResources();
         TypedArray typedArray = ShadowTypedArray.create(resources,
                 asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/items", "@string/ok", TestUtil.TEST_PACKAGE)),
                 new int[] {R.attr.items});
@@ -100,7 +118,6 @@ public class TypedArrayTest {
     }
 
     @Test public void hasValue_withoutValue() throws Exception {
-        Resources resources = Robolectric.application.getResources();
         TypedArray typedArray = ShadowTypedArray.create(resources,
                 Arrays.<Attribute>asList(),
                 new int[]{R.attr.items});
@@ -108,7 +125,6 @@ public class TypedArrayTest {
     }
 
     @Test public void hasValue_withNullValue() throws Exception {
-        Resources resources = Robolectric.application.getResources();
         TypedArray typedArray = ShadowTypedArray.create(resources,
                 asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/items", "@null", TestUtil.TEST_PACKAGE)),
                 new int[] {R.attr.items});
@@ -116,7 +132,6 @@ public class TypedArrayTest {
     }
 
     @Test public void shouldEnumeratePresentValues() throws Exception {
-        Resources resources = Robolectric.application.getResources();
         TypedArray typedArray = ShadowTypedArray.create(resources,
                 asList(
                         new Attribute(TestUtil.TEST_PACKAGE + ":attr/items", "@array/greetings", TestUtil.TEST_PACKAGE),

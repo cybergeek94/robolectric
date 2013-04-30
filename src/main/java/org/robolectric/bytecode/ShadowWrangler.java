@@ -1,7 +1,6 @@
 package org.robolectric.bytecode;
 
-import android.content.Context;
-import org.robolectric.Robolectric;
+import android.app.Activity;
 import org.robolectric.internal.Implements;
 import org.robolectric.internal.RealObject;
 import org.robolectric.shadows.ShadowWindow;
@@ -25,7 +24,7 @@ import static org.fest.reflect.core.Reflection.type;
 public class ShadowWrangler implements ClassHandler {
     public static final Function<Object, Object> DO_NOTHING_HANDLER = new Function<Object, Object>() {
         @Override
-        public Object call(Class<?> theClass, Object value) {
+        public Object call(Class<?> theClass, Object value, Object[] params) {
             return null;
         }
     };
@@ -188,7 +187,7 @@ public class ShadowWrangler implements ClassHandler {
             System.out.println("DEBUG: intercepted call to " + methodSignature);
         }
 
-        return getInterceptionHandler(methodSignature).call(theClass, instance);
+        return getInterceptionHandler(methodSignature).call(theClass, instance, params);
     }
 
     public Function<Object, Object> getInterceptionHandler(MethodSignature methodSignature) {
@@ -196,21 +195,23 @@ public class ShadowWrangler implements ClassHandler {
         if (methodSignature.matches(LinkedHashMap.class.getName(), "eldest")) {
             return new Function<Object, Object>() {
                 @Override
-                public Object call(Class<?> theClass, Object value) {
+                public Object call(Class<?> theClass, Object value, Object[] params) {
                     LinkedHashMap map = (LinkedHashMap) value;
                     return map.entrySet().iterator().next();
                 }
             };
         } else if (methodSignature.matches("com.android.internal.policy.PolicyManager", "makeNewWindow")) {
             return new Function<Object, Object>() {
-                @Override public Object call(Class<?> theClass, Object value) {
+                @Override public Object call(Class<?> theClass, Object value, Object[] params) {
                     ClassLoader cl = theClass.getClassLoader();
                     Class<?> shadowWindowClass = type(ShadowWindow.class.getName()).withClassLoader(cl).load();
-                    Class<?> contextClass = type(Context.class.getName()).withClassLoader(cl).load();
+                    Class<?> activityClass = type(Activity.class.getName()).withClassLoader(cl).load();
+
+                    Object activity = params[0];
                     return method("create")
-                            .withParameterTypes(contextClass)
+                            .withParameterTypes(activityClass)
                             .in(shadowWindowClass)
-                            .invoke(Robolectric.application); // todo: should take context from first param
+                            .invoke(activity);
                 }
             };
         }

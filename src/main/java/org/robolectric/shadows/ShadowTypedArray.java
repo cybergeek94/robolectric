@@ -9,6 +9,7 @@ import org.robolectric.internal.Implements;
 import org.robolectric.internal.RealObject;
 import org.robolectric.res.Attribute;
 import org.robolectric.res.ResName;
+import org.robolectric.res.ResourceIndex;
 import org.robolectric.util.Util;
 
 import java.util.List;
@@ -35,22 +36,34 @@ public class ShadowTypedArray implements UsesResources {
             int offset = nextIndex * ShadowAssetManager.STYLE_NUM_ENTRIES;
 
             int attr = attrs[i];
-            ResName attrName = shadowOf(resources).getResourceLoader().getResourceIndex().getResName(attr);
+            ResourceIndex resourceIndex = shadowOf(resources).getResourceLoader().getResourceIndex();
+            ResName attrName = resourceIndex.getResName(attr);
             System.out.println("Looking for " + attrName + " from style index " + i);
             if (attrName != null) {
-                String attributeValue = Attribute.findValue(set, attrName.getFullyQualifiedName());
-                if (attributeValue != null) {
-                    //noinspection PointlessArithmeticExpression
-                    data[offset + ShadowAssetManager.STYLE_TYPE] = attributeValue == null ? TypedValue.TYPE_NULL : TypedValue.TYPE_STRING;
-                    data[offset + ShadowAssetManager.STYLE_DATA] = i;
-                    data[offset + ShadowAssetManager.STYLE_ASSET_COOKIE] = 0;
-                    data[offset + ShadowAssetManager.STYLE_RESOURCE_ID] = 0;
-                    data[offset + ShadowAssetManager.STYLE_CHANGING_CONFIGURATIONS] = 0;
-                    data[offset + ShadowAssetManager.STYLE_DENSITY] = 0;
-                    stringData[i] = attributeValue;
+                Attribute attribute = Attribute.find(set, attrName.getFullyQualifiedName());
+                if (attribute != null && !attribute.isNull()) {
+                    if (attribute.isReference()) {
+                        ResName resName = attribute.getReferenceResName();
+                        Integer resourceId = resourceIndex.getResourceId(resName);
+                        if (resourceId == null) {
+                            throw new Resources.NotFoundException("unknown resource " + resName + " referred to from " + attribute);
+                        }
+                        //noinspection PointlessArithmeticExpression
+                        data[offset + ShadowAssetManager.STYLE_TYPE] = TypedValue.TYPE_REFERENCE;
+                        data[offset + ShadowAssetManager.STYLE_RESOURCE_ID] = resourceId;
+                    } else {
+                        //noinspection PointlessArithmeticExpression
+                        data[offset + ShadowAssetManager.STYLE_TYPE] = TypedValue.TYPE_STRING;
+                        data[offset + ShadowAssetManager.STYLE_DATA] = i;
+                        data[offset + ShadowAssetManager.STYLE_ASSET_COOKIE] = 0;
+                        stringData[i] = attribute.value;
+                    }
+
+//                    data[offset + ShadowAssetManager.STYLE_CHANGING_CONFIGURATIONS] = 0;
+//                    data[offset + ShadowAssetManager.STYLE_DENSITY] = 0;
 
                     indices[i + 1] = nextIndex;
-                    System.out.println("value of " + attrName + " is " + attributeValue + "; index is " + nextIndex + "; in style is " + i);
+                    System.out.println("value of " + attrName + " is " + attribute.value + "; index is " + nextIndex + "; in style is " + i);
 
                     nextIndex++;
                 }

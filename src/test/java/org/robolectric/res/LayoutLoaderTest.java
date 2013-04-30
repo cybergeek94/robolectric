@@ -257,7 +257,7 @@ public class LayoutLoaderTest {
         View mediaView = inflate("main");
         ImageView imageView = (ImageView) mediaView.findViewById(R.id.image);
         BitmapDrawable drawable = (BitmapDrawable) imageView.getDrawable();
-        assertThat(shadowOf(drawable.getBitmap()).getLoadedFromResourceId()).isEqualTo(R.drawable.an_image);
+        assertThat(shadowOf(drawable.getBitmap()).getCreatedFromResId()).isEqualTo(R.drawable.an_image);
     }
 
     @Test
