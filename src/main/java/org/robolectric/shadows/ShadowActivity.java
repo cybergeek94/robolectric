@@ -32,6 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.fest.reflect.core.Reflection.field;
+import static org.robolectric.Robolectric.directlyOn;
 import static org.robolectric.Robolectric.shadowOf;
 
 @Implements(Activity.class)
@@ -44,7 +46,6 @@ public class ShadowActivity extends ShadowContextThemeWrapper {
     private Intent resultIntent;
     private Activity parent;
     private boolean finishWasCalled;
-    private RoboWindow window;
 
     private List<IntentForResult> startedActivitiesForResults = new ArrayList<IntentForResult>();
 
@@ -312,14 +313,15 @@ public class ShadowActivity extends ShadowContextThemeWrapper {
      */
     @Implementation
     public Window getWindow() {
+        Window window = directlyOn(realActivity, Activity.class).getWindow();
         if (window == null) {
-            window = new RoboWindow(realActivity);
+            setWindow(window = new RoboWindow(realActivity));
         }
         return window;
     }
 
-    public void setWindow(RoboWindow wind){
-    	window = wind;
+    public void setWindow(Window window) {
+        field("mWindow").ofType(Window.class).in(realActivity).set(window);
     }
     
     @Implementation

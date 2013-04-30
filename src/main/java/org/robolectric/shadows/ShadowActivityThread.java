@@ -11,8 +11,10 @@ import java.lang.reflect.Proxy;
 
 import static org.fest.reflect.core.Reflection.type;
 
-@Implements(value = Robolectric.Anything.class, className = "android.app.ActivityThread")
+@Implements(value = Robolectric.Anything.class, className = ShadowActivityThread.CLASS_NAME)
 public class ShadowActivityThread {
+    public static final String CLASS_NAME = "android.app.ActivityThread";
+
     @Implementation
     public static Object getPackageManager() {
         ClassLoader classLoader = ShadowActivityThread.class.getClassLoader();

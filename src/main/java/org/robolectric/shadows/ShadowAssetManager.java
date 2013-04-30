@@ -19,6 +19,15 @@ import static org.robolectric.Robolectric.shadowOf;
 @SuppressWarnings({"UnusedDeclaration"})
 @Implements(AssetManager.class)
 public final class ShadowAssetManager {
+    // taken from AssetManager:
+    public static final int STYLE_NUM_ENTRIES = 6;
+    public static final int STYLE_TYPE = 0;
+    public static final int STYLE_DATA = 1;
+    public static final int STYLE_ASSET_COOKIE = 2;
+    public static final int STYLE_RESOURCE_ID = 3;
+    public static final int STYLE_CHANGING_CONFIGURATIONS = 4;
+    public static final int STYLE_DENSITY = 5;
+
     private String qualifiers = "";
 
     static AssetManager bind(AssetManager assetManager, AndroidManifest androidManifest, ResourceLoader resourceLoader) {

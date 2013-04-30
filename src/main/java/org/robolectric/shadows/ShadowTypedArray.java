@@ -1,21 +1,17 @@
 package org.robolectric.shadows;
 
-import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.Drawable;
-import android.util.AttributeSet;
+import android.util.TypedValue;
 import org.robolectric.Robolectric;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
+import org.robolectric.internal.RealObject;
+import org.robolectric.res.Attribute;
 import org.robolectric.res.ResName;
-import org.robolectric.res.ResourceIndex;
+import org.robolectric.util.Util;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 import static org.fest.reflect.core.Reflection.constructor;
 import static org.robolectric.Robolectric.shadowOf;
@@ -23,218 +19,261 @@ import static org.robolectric.Robolectric.shadowOf;
 @SuppressWarnings({"UnusedDeclaration"})
 @Implements(TypedArray.class)
 public class ShadowTypedArray implements UsesResources {
-    private Resources resources;
-    private AttributeSet values;
+    @RealObject private TypedArray realTypedArray;
+    private CharSequence[] stringData;
     private int[] attrs;
-    private int[] presentAttrs;
-    private ResourceIndex resourceIndex;
 
-    public static TypedArray create(Resources resources, AttributeSet set, int[] attrs) {
-        TypedArray typedArray = constructor().withParameterTypes(Resources.class, int[].class, int[].class, int.class)
+    public static TypedArray create(Resources resources, List<Attribute> set, int[] attrs) {
+        CharSequence[] stringData = new CharSequence[attrs.length];
+        int[] data = new int[attrs.length * ShadowAssetManager.STYLE_NUM_ENTRIES];
+        int[] indices = new int[attrs.length + 1];
+        int nextIndex = 0;
+
+        List<Integer> wantedAttrsList = Util.intArrayToList(attrs);
+
+        for (int i = 0; i < attrs.length; i++) {
+            int offset = nextIndex * ShadowAssetManager.STYLE_NUM_ENTRIES;
+
+            int attr = attrs[i];
+            ResName attrName = shadowOf(resources).getResourceLoader().getResourceIndex().getResName(attr);
+            System.out.println("Looking for " + attrName + " from style index " + i);
+            if (attrName != null) {
+                String attributeValue = Attribute.findValue(set, attrName.getFullyQualifiedName());
+                if (attributeValue != null) {
+                    //noinspection PointlessArithmeticExpression
+                    data[offset + ShadowAssetManager.STYLE_TYPE] = attributeValue == null ? TypedValue.TYPE_NULL : TypedValue.TYPE_STRING;
+                    data[offset + ShadowAssetManager.STYLE_DATA] = i;
+                    data[offset + ShadowAssetManager.STYLE_ASSET_COOKIE] = 0;
+                    data[offset + ShadowAssetManager.STYLE_RESOURCE_ID] = 0;
+                    data[offset + ShadowAssetManager.STYLE_CHANGING_CONFIGURATIONS] = 0;
+                    data[offset + ShadowAssetManager.STYLE_DENSITY] = 0;
+                    stringData[i] = attributeValue;
+
+                    indices[i + 1] = nextIndex;
+                    System.out.println("value of " + attrName + " is " + attributeValue + "; index is " + nextIndex + "; in style is " + i);
+
+                    nextIndex++;
+                }
+            }
+        }
+
+        indices[0] = nextIndex;
+
+        TypedArray typedArray = constructor()
+                .withParameterTypes(Resources.class, int[].class, int[].class, int.class)
                 .in(TypedArray.class)
-                .newInstance(resources);
+                .newInstance(resources, data, indices, nextIndex);
         TypedArray result = ShadowResources.inject(resources, typedArray);
-        Robolectric.shadowOf(result).populate(set, attrs);
+        ShadowTypedArray shadowTypedArray = Robolectric.shadowOf(result);
+        shadowTypedArray.stringData = stringData;
+        shadowTypedArray.attrs = attrs;
+
+//        shadowTypedArray.populate(set, attrs);
         return result;
     }
 
+    @Implementation
+    public CharSequence loadStringValueAt(int index) {
+        return stringData[index / ShadowAssetManager.STYLE_NUM_ENTRIES];
+    }
+
     public void injectResources(Resources resources) {
-        this.resources = resources;
-        resourceIndex = shadowOf(resources).getResourceLoader().getResourceIndex();
+//        this.resources = resources;
+//        resourceIndex = shadowOf(resources).getResourceLoader().getResourceIndex();
     }
-
-    @Implementation
-    synchronized public int getIndexCount() {
-        if (presentAttrs == null) populatePresent();
-        return presentAttrs.length;
-    }
-
-    @Implementation
-    synchronized public int getIndex(int at) {
-        if (presentAttrs == null) populatePresent();
-        return presentAttrs[at];
-    }
-
-    @Implementation
-    public Resources getResources() {
-        return resources;
-    }
-
-    @Implementation
-    public CharSequence getText(int index) {
-        ResName resName = getResName(index);
-        if (resName == null) return null;
-        CharSequence str = values.getAttributeValue(resName.namespace, resName.name);
-        return str == null ? "" : str;
-    }
-
+//
 //    @Implementation
-//    public String getString(int index) {
+//    synchronized public int getIndexCount() {
+//        if (presentAttrs == null) populatePresent();
+//        return presentAttrs.length;
+//    }
+//
+//    @Implementation
+//    synchronized public int getIndex(int at) {
+//        if (presentAttrs == null) populatePresent();
+//        return presentAttrs[at];
+//    }
+//
+//    @Implementation
+//    public Resources getResources() {
+//        return resources;
+//    }
+//
+//    @Implementation
+//    public CharSequence getText(int index) {
 //        ResName resName = getResName(index);
 //        if (resName == null) return null;
-//        String str = values.getAttributeValue(resName.namespace, resName.name);
+//        CharSequence str = values.getAttributeValue(resName.namespace, resName.name);
 //        return str == null ? "" : str;
 //    }
-
-    @Implementation
-    public boolean getBoolean(int index, boolean defValue) {
-        ResName resName = getResName(index);
-        if (resName == null) return defValue;
-        return values.getAttributeBooleanValue(resName.namespace, resName.name, defValue);
-    }
-
-    @Implementation
-    public int getInt(int index, int defValue) {
-        ResName resName = getResName(index);
-        if (resName == null) return defValue;
-        return values.getAttributeIntValue(resName.namespace, resName.name, defValue);
-    }
-
-    @Implementation
-    public float getFloat(int index, float defValue) {
-        ResName resName = getResName(index);
-        if (resName == null) return defValue;
-        return values.getAttributeFloatValue(resName.namespace, resName.name, defValue);
-    }
-
-    @Implementation
-    public int getColor(int index, int defValue) {
-        ResName resName = getResName(index);
-        if (resName == null) return defValue;
-        String value = values.getAttributeValue(resName.namespace, resName.name);
-        if (value == null || isReference(value)) {
-            int attributeResourceValue = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
-            if (attributeResourceValue != -1) {
-                return resources.getColor(attributeResourceValue);
-            } else {
-                return defValue;
-            }
-        } else {
-            return Color.parseColor(value);
-        }
-    }
-
-    @Implementation
-    public ColorStateList getColorStateList(int index) {
-        ResName resName = getResName(index);
-        if (resName == null) return null;
-        String value = values.getAttributeValue(resName.namespace, resName.name);
-        if (value == null || isReference(value)) {
-            int attributeResourceValue = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
-            if (attributeResourceValue != -1) {
-                return resources.getColorStateList(attributeResourceValue);
-            }
-        }
-        return null;
-    }
-
-    @Implementation
-    public int getInteger(int index, int defValue) {
-        ResName resName = getResName(index);
-        if (resName == null) return defValue;
-        return values.getAttributeIntValue(resName.namespace, resName.name, defValue);
-    }
-
-    @Implementation
-    public float getDimension(int index, float defValue) {
-        return defValue;
-    }
-
-    @Implementation
-    public int getDimensionPixelOffset(int index, int defValue) {
-        return defValue;
-    }
-
-    @Implementation
-    public int getDimensionPixelSize(int index, int defValue) {
-        return defValue;
-    }
-
-    @Implementation
-    public int getResourceId(int index, int defValue) {
-        ResName resName = getResName(index);
-        if (resName == null) return defValue;
-        return values.getAttributeResourceValue(resName.namespace, resName.name, defValue);
-    }
-
-    @Implementation
-    public Drawable getDrawable(int index) {
-        ResName resName = getResName(index);
-        if (resName == null) return null;
-        String textValue = values.getAttributeValue(resName.namespace, resName.name);
-        if (textValue != null && textValue.startsWith("#")) {
-            return new ColorDrawable(Color.parseColor(textValue));
-        }
-        int drawableId = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
-        return drawableId == -1 ? null : resources.getDrawable(drawableId);
-    }
-
-    @Implementation
-    public java.lang.CharSequence[] getTextArray(int index) {
-        ResName resName = getResName(index);
-        if (resName == null) return null;
-        int resourceId = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
-        return resourceId == -1 ? null : resources.getTextArray(resourceId);
-    }
-
-    @Implementation
-    public boolean getValue(int index, android.util.TypedValue outValue) {
-        return false;
-    }
-
-    @Implementation
-    public void recycle() {
-    }
-
-    @Implementation
-    public boolean hasValue(int index) {
-        ResName resName = getResName(index);
-        if (resName == null) return false;
-        String str = values.getAttributeValue(resName.namespace, resName.name);
-        return str != null;
-    }
-
-    @Implementation
-    public android.util.TypedValue peekValue(int index) {
-        return null;
-    }
-
-    private ResName getResName(int index) {
-        return resourceIndex.getResName(attrs[index]);
-    }
-
-    public void populate(AttributeSet set, int[] attrs) {
-        if (this.values != null || this.attrs != null) throw new IllegalStateException();
-        this.values = set;
-        this.attrs = attrs;
-    }
-
-    synchronized private void populatePresent() {
-        Set<Integer> attrsPresent = new HashSet<Integer>();
-        int count = values.getAttributeCount();
-        for (int i = 0; i < count; i++) {
-            attrsPresent.add(values.getAttributeNameResource(i));
-        }
-        attrsPresent.retainAll(Arrays.asList(box(attrs)));
-        this.presentAttrs = new int[attrsPresent.size()];
-        int j = 0;
-        if (attrs == null) return;
-        for (int i = 0; i < attrs.length; i++) {
-            int attr = attrs[i];
-            if (attrsPresent.contains(attr)) {
-                presentAttrs[j++] = i;
-            }
-        }
-    }
-
-    private Integer[] box(int[] ints) {
-        if (ints == null) return new Integer[0];
-        Integer[] integers = new Integer[ints.length];
-        for (int i = 0; i < ints.length; i++) integers[i] = ints[i];
-        return integers;
-    }
-
-    private boolean isReference(String value) {
-        return value.startsWith("@");
-    }
+//
+////    @Implementation
+////    public String getString(int index) {
+////        ResName resName = getResName(index);
+////        if (resName == null) return null;
+////        String str = values.getAttributeValue(resName.namespace, resName.name);
+////        return str == null ? "" : str;
+////    }
+//
+//    @Implementation
+//    public boolean getBoolean(int index, boolean defValue) {
+//        ResName resName = getResName(index);
+//        if (resName == null) return defValue;
+//        return values.getAttributeBooleanValue(resName.namespace, resName.name, defValue);
+//    }
+//
+//    @Implementation
+//    public int getInt(int index, int defValue) {
+//        ResName resName = getResName(index);
+//        if (resName == null) return defValue;
+//        return values.getAttributeIntValue(resName.namespace, resName.name, defValue);
+//    }
+//
+//    @Implementation
+//    public float getFloat(int index, float defValue) {
+//        ResName resName = getResName(index);
+//        if (resName == null) return defValue;
+//        return values.getAttributeFloatValue(resName.namespace, resName.name, defValue);
+//    }
+//
+//    @Implementation
+//    public int getColor(int index, int defValue) {
+//        ResName resName = getResName(index);
+//        if (resName == null) return defValue;
+//        String value = values.getAttributeValue(resName.namespace, resName.name);
+//        if (value == null || isReference(value)) {
+//            int attributeResourceValue = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
+//            if (attributeResourceValue != -1) {
+//                return resources.getColor(attributeResourceValue);
+//            } else {
+//                return defValue;
+//            }
+//        } else {
+//            return Color.parseColor(value);
+//        }
+//    }
+//
+//    @Implementation
+//    public ColorStateList getColorStateList(int index) {
+//        ResName resName = getResName(index);
+//        if (resName == null) return null;
+//        String value = values.getAttributeValue(resName.namespace, resName.name);
+//        if (value == null || isReference(value)) {
+//            int attributeResourceValue = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
+//            if (attributeResourceValue != -1) {
+//                return resources.getColorStateList(attributeResourceValue);
+//            }
+//        }
+//        return null;
+//    }
+//
+//    @Implementation
+//    public int getInteger(int index, int defValue) {
+//        ResName resName = getResName(index);
+//        if (resName == null) return defValue;
+//        return values.getAttributeIntValue(resName.namespace, resName.name, defValue);
+//    }
+//
+//    @Implementation
+//    public float getDimension(int index, float defValue) {
+//        return defValue;
+//    }
+//
+//    @Implementation
+//    public int getDimensionPixelOffset(int index, int defValue) {
+//        return defValue;
+//    }
+//
+//    @Implementation
+//    public int getDimensionPixelSize(int index, int defValue) {
+//        return defValue;
+//    }
+//
+//    @Implementation
+//    public int getResourceId(int index, int defValue) {
+//        ResName resName = getResName(index);
+//        if (resName == null) return defValue;
+//        return values.getAttributeResourceValue(resName.namespace, resName.name, defValue);
+//    }
+//
+//    @Implementation
+//    public Drawable getDrawable(int index) {
+//        ResName resName = getResName(index);
+//        if (resName == null) return null;
+//        String textValue = values.getAttributeValue(resName.namespace, resName.name);
+//        if (textValue != null && textValue.startsWith("#")) {
+//            return new ColorDrawable(Color.parseColor(textValue));
+//        }
+//        int drawableId = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
+//        return drawableId == -1 ? null : resources.getDrawable(drawableId);
+//    }
+//
+//    @Implementation
+//    public java.lang.CharSequence[] getTextArray(int index) {
+//        ResName resName = getResName(index);
+//        if (resName == null) return null;
+//        int resourceId = values.getAttributeResourceValue(resName.namespace, resName.name, -1);
+//        return resourceId == -1 ? null : resources.getTextArray(resourceId);
+//    }
+//
+//    @Implementation
+//    public boolean getValue(int index, android.util.TypedValue outValue) {
+//        return false;
+//    }
+//
+//    @Implementation
+//    public void recycle() {
+//    }
+//
+//    @Implementation
+//    public boolean hasValue(int index) {
+//        ResName resName = getResName(index);
+//        if (resName == null) return false;
+//        String str = values.getAttributeValue(resName.namespace, resName.name);
+//        return str != null;
+//    }
+//
+//    @Implementation
+//    public android.util.TypedValue peekValue(int index) {
+//        return null;
+//    }
+//
+//    private ResName getResName(int index) {
+//        return resourceIndex.getResName(attrs[index]);
+//    }
+//
+//    public void populate(AttributeSet set, int[] attrs) {
+//        if (this.values != null || this.attrs != null) throw new IllegalStateException();
+//        this.values = set;
+//        this.attrs = attrs;
+//    }
+//
+//    synchronized private void populatePresent() {
+//        Set<Integer> attrsPresent = new HashSet<Integer>();
+//        int count = values.getAttributeCount();
+//        for (int i = 0; i < count; i++) {
+//            attrsPresent.add(values.getAttributeNameResource(i));
+//        }
+//        attrsPresent.retainAll(Arrays.asList(box(attrs)));
+//        this.presentAttrs = new int[attrsPresent.size()];
+//        int j = 0;
+//        if (attrs == null) return;
+//        for (int i = 0; i < attrs.length; i++) {
+//            int attr = attrs[i];
+//            if (attrsPresent.contains(attr)) {
+//                presentAttrs[j++] = i;
+//            }
+//        }
+//    }
+//
+//    private Integer[] box(int[] ints) {
+//        if (ints == null) return new Integer[0];
+//        Integer[] integers = new Integer[ints.length];
+//        for (int i = 0; i < ints.length; i++) integers[i] = ints[i];
+//        return integers;
+//    }
+//
+//    private boolean isReference(String value) {
+//        return value.startsWith("@");
+//    }
 }

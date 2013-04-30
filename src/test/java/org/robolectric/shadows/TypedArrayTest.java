@@ -20,7 +20,6 @@ import static java.util.Arrays.asList;
 import static org.fest.assertions.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.robolectric.Robolectric.shadowOf;
 
 @RunWith(TestRunners.WithDefaults.class)
 public class TypedArrayTest {
@@ -28,12 +27,12 @@ public class TypedArrayTest {
 
     @Before
     public void setUp() throws Exception {
-        context = new Activity();
+        context = TestUtil.buildActivity(Activity.class).create().get();
     }
 
     @Test
     public void getResources() throws Exception {
-        assertNotNull(context.obtainStyledAttributes(null).getResources());
+        assertNotNull(context.obtainStyledAttributes(new int[]{}).getResources());
     }
 
     @Test
@@ -54,10 +53,9 @@ public class TypedArrayTest {
     @Test
     public void getResourceId_shouldReturnActualValue() throws Exception {
         Resources resources = Robolectric.application.getResources();
-        RoboAttributeSet attributeSet = new RoboAttributeSet(
-                asList(new Attribute("android:attr/id", "@+id/snippet_text", TestUtil.TEST_PACKAGE)
-                ), shadowOf(resources).getResourceLoader(), null);
-        TypedArray typedArray = ShadowTypedArray.create(resources, attributeSet, new int[]{android.R.attr.id});
+        TypedArray typedArray = ShadowTypedArray.create(resources,
+                asList(new Attribute("android:attr/id", "@+id/snippet_text", TestUtil.TEST_PACKAGE)),
+                new int[]{android.R.attr.id});
         assertThat(typedArray.getResourceId(0, -1)).isEqualTo(R.id.snippet_text);
     }
 
@@ -69,65 +67,62 @@ public class TypedArrayTest {
     @Test
     public void getDrawable_withExplicitColorValue_shouldReturnColorDrawable() throws Exception {
         Resources resources = Robolectric.application.getResources();
-        RoboAttributeSet attributeSet = new RoboAttributeSet(
-                asList(new Attribute("android:attr/background", "#ff777777", TestUtil.TEST_PACKAGE)
-                ), shadowOf(resources).getResourceLoader(), null);
-        TypedArray typedArray = ShadowTypedArray.create(resources, attributeSet, new int[]{android.R.attr.background});
+        TypedArray typedArray = ShadowTypedArray.create(resources,
+                asList(new Attribute("android:attr/background", "#ff777777", TestUtil.TEST_PACKAGE)),
+                new int[] {android.R.attr.background});
         assertThat(typedArray.getDrawable(0)).isEqualTo(new ColorDrawable(0xff777777));
     }
 
     @Test
     public void getTextArray_whenNoSuchAttribute_shouldReturnNull() throws Exception {
         Resources resources = Robolectric.application.getResources();
-        RoboAttributeSet attributeSet = new RoboAttributeSet(
-                asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/keycode", "@array/greetings", TestUtil.TEST_PACKAGE)
-                ), shadowOf(resources).getResourceLoader(), null);
-        TypedArray typedArray = ShadowTypedArray.create(resources, attributeSet, new int[]{R.attr.items});
+        TypedArray typedArray = ShadowTypedArray.create(resources,
+                asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/keycode", "@array/greetings", TestUtil.TEST_PACKAGE)),
+                new int[]{R.attr.items});
         assertNull(typedArray.getTextArray(0));
     }
 
     @Test
     public void getTextArray_shouldReturnValues() throws Exception {
         Resources resources = Robolectric.application.getResources();
-        RoboAttributeSet attributeSet = new RoboAttributeSet(
-                asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/items", "@array/greetings", TestUtil.TEST_PACKAGE)
-                ), shadowOf(resources).getResourceLoader(), null);
-        TypedArray typedArray = ShadowTypedArray.create(resources, attributeSet, new int[]{R.attr.items});
+        TypedArray typedArray = ShadowTypedArray.create(resources,
+                asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/items", "@array/greetings", TestUtil.TEST_PACKAGE)),
+                new int[]{R.attr.items});
         assertThat(typedArray.getTextArray(0)).containsExactly("hola", "Hello");
     }
 
     @Test public void hasValue_withValue() throws Exception {
         Resources resources = Robolectric.application.getResources();
-        RoboAttributeSet attributeSet = new RoboAttributeSet(
-                asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/items", "@string/ok", TestUtil.TEST_PACKAGE)
-                ), shadowOf(resources).getResourceLoader(), null);
-        TypedArray typedArray = ShadowTypedArray.create(resources, attributeSet, new int[]{R.attr.items});
+        TypedArray typedArray = ShadowTypedArray.create(resources,
+                asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/items", "@string/ok", TestUtil.TEST_PACKAGE)),
+                new int[] {R.attr.items});
         assertThat(typedArray.hasValue(0)).isTrue();
     }
 
     @Test public void hasValue_withoutValue() throws Exception {
         Resources resources = Robolectric.application.getResources();
-        RoboAttributeSet attributeSet = new RoboAttributeSet(Arrays.<Attribute>asList(), shadowOf(resources).getResourceLoader(), null);
-        TypedArray typedArray = ShadowTypedArray.create(resources, attributeSet, new int[]{R.attr.items});
+        TypedArray typedArray = ShadowTypedArray.create(resources,
+                Arrays.<Attribute>asList(),
+                new int[]{R.attr.items});
         assertThat(typedArray.hasValue(0)).isFalse();
     }
 
     @Test public void hasValue_withNullValue() throws Exception {
         Resources resources = Robolectric.application.getResources();
-        RoboAttributeSet attributeSet = new RoboAttributeSet(
-                asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/items", "@null", TestUtil.TEST_PACKAGE)
-                ), shadowOf(resources).getResourceLoader(), null);
-        TypedArray typedArray = ShadowTypedArray.create(resources, attributeSet, new int[]{R.attr.items});
+        TypedArray typedArray = ShadowTypedArray.create(resources,
+                asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/items", "@null", TestUtil.TEST_PACKAGE)),
+                new int[] {R.attr.items});
         assertThat(typedArray.hasValue(0)).isFalse();
     }
 
     @Test public void shouldEnumeratePresentValues() throws Exception {
         Resources resources = Robolectric.application.getResources();
-        RoboAttributeSet attributeSet = new RoboAttributeSet(
-                asList(new Attribute(TestUtil.TEST_PACKAGE + ":attr/items", "@array/greetings", TestUtil.TEST_PACKAGE),
+        TypedArray typedArray = ShadowTypedArray.create(resources,
+                asList(
+                        new Attribute(TestUtil.TEST_PACKAGE + ":attr/items", "@array/greetings", TestUtil.TEST_PACKAGE),
                         new Attribute(TestUtil.TEST_PACKAGE + ":attr/aspectRatio", "1", TestUtil.TEST_PACKAGE)
-                ), shadowOf(resources).getResourceLoader(), null);
-        TypedArray typedArray = ShadowTypedArray.create(resources, attributeSet, new int[]{R.attr.scrollBars, R.attr.items, R.attr.isSugary});
+                ),
+                new int[]{R.attr.scrollBars, R.attr.items, R.attr.isSugary});
         assertThat(typedArray.getIndexCount()).isEqualTo(1);
         assertThat(typedArray.getIndex(0)).isEqualTo(1);
     }

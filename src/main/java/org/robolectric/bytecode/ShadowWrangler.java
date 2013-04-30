@@ -1,5 +1,7 @@
 package org.robolectric.bytecode;
 
+import android.content.Context;
+import org.robolectric.Robolectric;
 import org.robolectric.internal.Implements;
 import org.robolectric.internal.RealObject;
 import org.robolectric.shadows.ShadowWindow;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.fest.reflect.core.Reflection.method;
+import static org.fest.reflect.core.Reflection.type;
 
 public class ShadowWrangler implements ClassHandler {
     public static final Function<Object, Object> DO_NOTHING_HANDLER = new Function<Object, Object>() {
@@ -201,19 +204,13 @@ public class ShadowWrangler implements ClassHandler {
         } else if (methodSignature.matches("com.android.internal.policy.PolicyManager", "makeNewWindow")) {
             return new Function<Object, Object>() {
                 @Override public Object call(Class<?> theClass, Object value) {
-                    try {
-                        Class<?> aClass = theClass.getClassLoader().loadClass(ShadowWindow.class.getName());
-                        Method createMethod = aClass.getMethod("create");
-                        return createMethod.invoke(null);
-                    } catch (ClassNotFoundException e) {
-                        throw new RuntimeException(e);
-                    } catch (NoSuchMethodException e) {
-                        throw new RuntimeException(e);
-                    } catch (IllegalAccessException e) {
-                        throw new RuntimeException(e);
-                    } catch (InvocationTargetException e) {
-                        throw new RuntimeException(e);
-                    }
+                    ClassLoader cl = theClass.getClassLoader();
+                    Class<?> shadowWindowClass = type(ShadowWindow.class.getName()).withClassLoader(cl).load();
+                    Class<?> contextClass = type(Context.class.getName()).withClassLoader(cl).load();
+                    return method("create")
+                            .withParameterTypes(contextClass)
+                            .in(shadowWindowClass)
+                            .invoke(Robolectric.application); // todo: should take context from first param
                 }
             };
         }

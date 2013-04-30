@@ -3,27 +3,31 @@ package org.robolectric.res;
 import javax.xml.xpath.XPathExpressionException;
 
 public class StyleResourceLoader extends XpathResourceXmlLoader {
-    private final ResBundle<StyleData> styleData;
+    private final ResBunch data;
 
-    public StyleResourceLoader(ResBundle<StyleData> styleData) {
+    public StyleResourceLoader(ResBunch data) {
         super("/resources/style");
-        this.styleData = styleData;
+        this.data = data;
     }
 
     @Override
     protected void processNode(String name, XmlNode xmlNode, XmlContext xmlContext) throws XPathExpressionException {
-        String styleName = xmlNode.getAttrValue("name").replace('.', '_');
-        String styleParent = xmlNode.getAttrValue("parent").replace('.', '_');
+        String styleName = underscorize(xmlNode.getAttrValue("name"));
+        String styleParent = underscorize(xmlNode.getAttrValue("parent"));
 
-        StyleData style = new StyleData(styleName, styleParent);
+        StyleData styleData = new StyleData(styleName, styleParent);
 
         for (XmlNode item : xmlNode.selectElements("item")) {
             String attrName = item.getAttrValue("name");
             String value = item.getTextContent();
 
-            style.add(attrName, value);
+            styleData.add(attrName, value);
         }
 
-        styleData.put("style", styleName, style, xmlContext);
+        data.put("style", styleName, new TypedResource<StyleData>(styleData, ResType.STYLE), xmlContext);
+    }
+
+    private String underscorize(String s) {
+        return s == null ? null : s.replace('.', '_');
     }
 }

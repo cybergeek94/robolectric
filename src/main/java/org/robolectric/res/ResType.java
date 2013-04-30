@@ -10,6 +10,11 @@ public enum ResType {
     COLOR_STATE_LIST,
     DIMEN,
     INTEGER,
+    STYLE {
+        @Override public TypedResource getValueWithType(XpathResourceXmlLoader.XmlNode xmlNode) {
+            throw new UnsupportedOperationException();
+        }
+    },
 
     CHAR_SEQUENCE_ARRAY {
         @Override public TypedResource getValueWithType(XpathResourceXmlLoader.XmlNode xmlNode) {

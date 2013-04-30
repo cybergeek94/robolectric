@@ -24,6 +24,7 @@ import org.robolectric.res.ResType;
 import org.robolectric.res.ResourceIndex;
 import org.robolectric.res.ResourceLoader;
 import org.robolectric.res.Style;
+import org.robolectric.res.StyleData;
 import org.robolectric.res.TypedResource;
 import org.robolectric.res.XmlFileLoader;
 import org.robolectric.res.builder.DrawableBuilder;
@@ -32,6 +33,7 @@ import org.w3c.dom.Document;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 import static org.fest.reflect.core.Reflection.field;
@@ -264,19 +266,38 @@ public class ShadowResources {
 
             // Load the style for the theme we represent. E.g. "@style/Theme.Robolectric"
             ResName themeStyleName = resourceLoader.getResourceIndex().getResName(styleResourceId);
-            Style theme = resourceLoader.getStyle(themeStyleName, qualifiers);
 
-            // Load the theme attribute for the default style attributes. E.g., attr/buttonStyle
-            ResName defStyleName = resourceLoader.getResourceIndex().getResName(defStyleAttr);
+            Style theme = getStyle(resourceLoader, themeStyleName, qualifiers);
 
-            // Load the style for the default style attribute. E.g. "@style/Widget.Robolectric.Button";
-            String defStyleNameValue = theme.getAttrValue(defStyleName.namespace + ":" + defStyleName.name);
-            Style defStyle = resourceLoader.getStyle(new ResName(defStyleName.namespace, "style", defStyleName.name), qualifiers);
+            Style defStyle = null;
+            if (defStyleAttr != 0) {
+                // Load the theme attribute for the default style attributes. E.g., attr/buttonStyle
+                ResName defStyleName = resourceLoader.getResourceIndex().getResName(defStyleAttr);
 
+                // Load the style for the default style attribute. E.g. "@style/Widget.Robolectric.Button";
+                String defStyleNameValue = theme.getAttrValue(defStyleName.namespace + ":" + defStyleName.name);
+                ResName defStyleResName = new ResName(defStyleName.namespace, "style", defStyleName.name);
+                defStyle = getStyle(resourceLoader, defStyleResName, qualifiers);
+            }
+
+            List<Attribute> attributes = new ArrayList<Attribute>();
             for (int i = 0; i < attrs.length; i++) {
                 int attr = attrs[i];
                 ResName attrName = resourceLoader.getResourceIndex().getResName(attr);
-                String attrValue;
+                System.out.println("index " + i + " has " + attrName);
+                if (attrName == null) continue;
+
+                String attrValue = set.getAttributeValue(attrName.namespace, attrName.name);
+                if (attrValue == null) {
+                    // else if attr in defStyle, use its value
+                    if (defStyle != null) {
+                        attrValue = defStyle.getAttrValue(attrName.name);
+                    }
+                }
+
+                if (attrValue != null) {
+                    Attribute.put(attributes, new Attribute(attrName, attrValue, "fixme!!!"));
+                }
 
                 // if attr in attribute set, use its value
                 // TODO look for attrvalue in attriburte set
@@ -286,15 +307,52 @@ public class ShadowResources {
 //                    attrValue = defStyle.getAttrValue(attrName);
 //                }
 
-
             }
 
-            return ShadowTypedArray.create(resources, set, attrs);
+            return ShadowTypedArray.create(resources, attributes, attrs);
         }
 
         Resources getResources() {
             // ugh
             return field("this$0").ofType(Resources.class).in(realTheme).get();
+        }
+    }
+
+    private static Style getStyle(ResourceLoader resourceLoader, ResName themeStyleName, String qualifiers) {
+        TypedResource themeStyleResource = resourceLoader.getValue(themeStyleName, qualifiers);
+        if (themeStyleResource == null) return null;
+        StyleData themeStyleData = (StyleData) themeStyleResource.getData();
+        return new StyleResolver(resourceLoader, themeStyleData, themeStyleName, qualifiers);
+    }
+
+    static class StyleResolver implements Style {
+        private final ResourceLoader resourceLoader;
+        private final StyleData leafStyle;
+        private final ResName myResName;
+        private final String qualifiers;
+
+        public StyleResolver(ResourceLoader resourceLoader, StyleData styleData, ResName myResName, String qualifiers) {
+            this.resourceLoader = resourceLoader;
+            this.leafStyle = styleData;
+            this.myResName = myResName;
+            this.qualifiers = qualifiers;
+        }
+
+        @Override public String getAttrValue(String name) {
+            StyleData currentStyle = leafStyle;
+            while (currentStyle != null) {
+                String value = currentStyle.getAttrValue(name);
+                if (value != null) return value;
+                currentStyle = getParent(currentStyle);
+            }
+            return null;
+        }
+
+        private StyleData getParent(StyleData currentStyle) {
+            String parent = currentStyle.getParent();
+            if (parent == null) return null;
+            TypedResource typedResource = resourceLoader.getValue(ResName.qualifyResName(parent, myResName), qualifiers);
+            return typedResource == null ? null : (StyleData) typedResource.getData();
         }
     }
 
