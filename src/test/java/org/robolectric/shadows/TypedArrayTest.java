@@ -28,7 +28,7 @@ public class TypedArrayTest {
 
     @Before
     public void setUp() throws Exception {
-        context = TestUtil.buildActivity(Activity.class).create().get();
+        context = Robolectric.buildActivity(Activity.class).create().get();
         resources = Robolectric.application.getResources();
     }
 
@@ -45,6 +45,14 @@ public class TypedArrayTest {
     @Test
     public void getInteger_shouldReturnDefaultValue() throws Exception {
         assertThat(context.obtainStyledAttributes(new int[]{android.R.attr.alpha}).getInteger(0, -1)).isEqualTo(-1);
+    }
+
+    @Test
+    public void getInt_withFlags_shouldReturnValue() throws Exception {
+        TypedArray typedArray = ShadowTypedArray.create(resources,
+                asList(new Attribute("android:attr/gravity", "top|left", TestUtil.TEST_PACKAGE)),
+                new int[]{android.R.attr.gravity});
+        assertThat(typedArray.getInt(0, -1)).isEqualTo(0x33);
     }
 
     @Test

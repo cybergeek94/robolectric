@@ -17,6 +17,7 @@ public class RobolectricInternals {
     // initialized via magic by SdkEnvironment
     private static ClassHandler classHandler;
     private static final Map<Class, Field> shadowFieldMap = new HashMap<Class, Field>();
+    public static boolean inActivityControllerBlock = false;
 
     public static ClassHandler getClassHandler() {
         return classHandler;

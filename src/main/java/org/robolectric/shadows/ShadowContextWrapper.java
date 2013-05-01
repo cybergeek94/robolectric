@@ -19,7 +19,6 @@ import android.os.Looper;
 import android.view.View;
 import org.robolectric.AndroidManifest;
 import org.robolectric.Robolectric;
-import org.robolectric.internal.HiddenApi;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.internal.RealObject;
@@ -72,11 +71,6 @@ public class ShadowContextWrapper extends ShadowContext {
     @Implementation
     @Override public File getCacheDir() {
         return super.getCacheDir();
-    }
-
-    @HiddenApi @Implementation
-    @Override public RoboAttributeSet createAttributeSet(List<Attribute> attributes, Class<? extends View> viewClass) {
-        return super.createAttributeSet(attributes, viewClass);
     }
 
     @Implementation

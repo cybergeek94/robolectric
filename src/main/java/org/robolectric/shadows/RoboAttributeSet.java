@@ -1,5 +1,6 @@
 package org.robolectric.shadows;
 
+import android.content.res.Resources;
 import android.util.AttributeSet;
 import android.view.View;
 import org.jetbrains.annotations.NotNull;
@@ -14,10 +15,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.robolectric.Robolectric.shadowOf;
+
 public class RoboAttributeSet implements AttributeSet {
     private static final Set<String> ALREADY_WARNED_ABOUT = new HashSet<String>();
 
     private final List<Attribute> attributes;
+    private final Resources resources;
     private final ResourceLoader resourceLoader;
     private Class<? extends View> viewClass;
 
@@ -31,8 +35,16 @@ public class RoboAttributeSet implements AttributeSet {
             new ResName("android:attr/summary")
     };
 
+    public RoboAttributeSet(List<Attribute> attributes, Resources resources, Class<? extends View> viewClass) {
+        this.attributes = attributes;
+        this.resources = resources;
+        this.resourceLoader = shadowOf(resources).getResourceLoader();
+        this.viewClass = viewClass;
+    }
+
     public RoboAttributeSet(List<Attribute> attributes, ResourceLoader resourceLoader, Class<? extends View> viewClass) {
         this.attributes = attributes;
+        this.resources = null;
         this.resourceLoader = resourceLoader;
         this.viewClass = viewClass;
     }
@@ -104,7 +116,18 @@ public class RoboAttributeSet implements AttributeSet {
 
     @Override
     public String getAttributeValue(String namespace, String attribute) {
-        return dereference(findByName(namespace, attribute));
+        Attribute attr = findByName(namespace, attribute);
+        if (attr != null && !attr.isNull()) {
+            return attr.value;
+            //if (attr.isReference()) {
+            //    ResName referenceResName = attr.getReferenceResName();
+            //    return resources.getString(resourceLoader.getResourceIndex().getResourceId(referenceResName));
+            //} else {
+            //    return attr.value;
+            //}
+        }
+
+        return null;
     }
 
     @Override
@@ -120,6 +143,7 @@ public class RoboAttributeSet implements AttributeSet {
     private String dereference(Attribute attr) {
         String value = (attr != null) ? attr.value : null;
         while (value != null && isReference(value)) {
+
             if ("@null".equals(value)) return null;
             ResName resName = new ResName(ResName.qualifyResourceName(value.substring(1), attr.contextPackageName, null));
             TypedResource value1 = resourceLoader.getValue(resName, ""); // todo: wrong!

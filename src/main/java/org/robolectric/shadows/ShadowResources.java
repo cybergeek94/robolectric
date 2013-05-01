@@ -261,7 +261,7 @@ public class ShadowResources {
             String qualifiers = shadowOf(resources).getQualifiers();
 
             if (set == null) {
-                set = new RoboAttributeSet(new ArrayList<Attribute>(), resourceLoader, null);
+                set = new RoboAttributeSet(new ArrayList<Attribute>(), resources, null);
             }
 
             // Load the style for the theme we represent. E.g. "@style/Theme.Robolectric"

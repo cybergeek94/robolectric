@@ -63,7 +63,7 @@ abstract public class ShadowContext {
     }
 
     public RoboAttributeSet createAttributeSet(List<Attribute> attributes, Class<? extends View> viewClass) {
-        RoboAttributeSet attributeSet = new RoboAttributeSet(attributes, getResourceLoader(), viewClass);
+        RoboAttributeSet attributeSet = new RoboAttributeSet(attributes, getResources(), viewClass);
         if (isStrictI18n()) {
             attributeSet.validateStrictI18n();
         }

@@ -20,6 +20,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import org.robolectric.Robolectric;
+import org.robolectric.bytecode.RobolectricInternals;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.internal.RealObject;
@@ -64,6 +65,14 @@ public class ShadowActivity extends ShadowContextThemeWrapper {
     private int mDefaultKeyMode = Activity.DEFAULT_KEYS_DISABLE;
     private SpannableStringBuilder mDefaultKeySsb = null;
     private boolean destroyed = false;
+
+    public void __constructor__() {
+        RobolectricInternals.getConstructor(Activity.class, realActivity, new Class[0]).invoke();
+
+        if (!RobolectricInternals.inActivityControllerBlock) {
+            callAttachBaseContext(Robolectric.application);
+        }
+    }
 
     public void callOnCreate(Bundle bundle) {
         invokeReflectively("onCreate", Bundle.class, bundle);

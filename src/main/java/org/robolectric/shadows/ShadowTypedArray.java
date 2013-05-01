@@ -7,9 +7,11 @@ import org.robolectric.Robolectric;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.internal.RealObject;
+import org.robolectric.res.AttrData;
 import org.robolectric.res.Attribute;
 import org.robolectric.res.ResName;
 import org.robolectric.res.ResourceIndex;
+import org.robolectric.res.TypedResource;
 import org.robolectric.util.Util;
 
 import java.util.List;
@@ -42,6 +44,8 @@ public class ShadowTypedArray implements UsesResources {
             if (attrName != null) {
                 Attribute attribute = Attribute.find(set, attrName.getFullyQualifiedName());
                 if (attribute != null && !attribute.isNull()) {
+                    TypedResource attrTypeData = shadowOf(resources).getResourceLoader().getValue(attrName, "");
+
                     if (attribute.isReference()) {
                         ResName resName = attribute.getReferenceResName();
                         Integer resourceId = resourceIndex.getResourceId(resName);
@@ -52,15 +56,22 @@ public class ShadowTypedArray implements UsesResources {
                         data[offset + ShadowAssetManager.STYLE_TYPE] = TypedValue.TYPE_REFERENCE;
                         data[offset + ShadowAssetManager.STYLE_RESOURCE_ID] = resourceId;
                     } else {
-                        //noinspection PointlessArithmeticExpression
-                        data[offset + ShadowAssetManager.STYLE_TYPE] = TypedValue.TYPE_STRING;
-                        data[offset + ShadowAssetManager.STYLE_DATA] = i;
-                        data[offset + ShadowAssetManager.STYLE_ASSET_COOKIE] = 0;
-                        stringData[i] = attribute.value;
-                    }
+                        Converter converter = Converter.getConverter((AttrData) attrTypeData.getData());
+                        TypedValue typedValue = new TypedValue();
+                        try {
+                            converter.fillTypedValue(attribute.value, typedValue);
+                        } catch (Exception e) {
+                            throw new Resources.NotFoundException("couldn't evaluate value from " + attribute);
+                        }
 
-//                    data[offset + ShadowAssetManager.STYLE_CHANGING_CONFIGURATIONS] = 0;
-//                    data[offset + ShadowAssetManager.STYLE_DENSITY] = 0;
+                        //noinspection PointlessArithmeticExpression
+                        data[offset + ShadowAssetManager.STYLE_TYPE] = typedValue.type;
+                        data[offset + ShadowAssetManager.STYLE_DATA] = typedValue.type == TypedValue.TYPE_STRING ? i : typedValue.data;
+                        data[offset + ShadowAssetManager.STYLE_ASSET_COOKIE] = typedValue.assetCookie;
+                        data[offset + ShadowAssetManager.STYLE_CHANGING_CONFIGURATIONS] = typedValue.changingConfigurations;
+                        data[offset + ShadowAssetManager.STYLE_DENSITY] = typedValue.density;
+                        stringData[i] = typedValue.string;
+                    }
 
                     indices[i + 1] = nextIndex;
                     System.out.println("value of " + attrName + " is " + attribute.value + "; index is " + nextIndex + "; in style is " + i);

@@ -1,6 +1,5 @@
 package org.robolectric.util;
 
-import android.app.Activity;
 import org.robolectric.AndroidManifest;
 import org.robolectric.MavenCentral;
 import org.robolectric.R;
@@ -133,9 +132,5 @@ public abstract class TestUtil {
             file = new File(file, part);
         }
         return file.getPath();
-    }
-
-    public static <T extends Activity> ActivityController<T> buildActivity(Class<T> activityClass) {
-        return new ActivityController<T>(activityClass);
     }
 }

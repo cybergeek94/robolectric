@@ -71,7 +71,7 @@ public final class ShadowAssetManager {
         TypedResource value = getAndResolve(resName, getQualifiers());
         if (value == null) return false;
 
-        getConverter(value).fillTypedValue(value, outValue);
+        getConverter(value).fillTypedValue(value.getData(), outValue);
         return true;
     }
 

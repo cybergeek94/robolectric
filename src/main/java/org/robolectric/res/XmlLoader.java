@@ -73,5 +73,12 @@ public abstract class XmlLoader {
         public FsFile getXmlFile() {
             return xmlFile;
         }
+
+        @Override public String toString() {
+            return "XmlContext{" +
+                    "packageName='" + packageName + '\'' +
+                    ", xmlFile=" + xmlFile +
+                    '}';
+        }
     }
 }

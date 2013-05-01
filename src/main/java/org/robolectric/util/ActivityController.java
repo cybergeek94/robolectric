@@ -10,6 +10,7 @@ import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.IBinder;
 import org.robolectric.Robolectric;
+import org.robolectric.bytecode.RobolectricInternals;
 import org.robolectric.shadows.ShadowActivity;
 import org.robolectric.shadows.ShadowActivityThread;
 
@@ -27,7 +28,13 @@ public class ActivityController<T> {
     private boolean attached;
 
     public ActivityController(Class<T> activityClass) {
-        this.activity = constructor().in(activityClass).newInstance();
+        boolean priorValue = RobolectricInternals.inActivityControllerBlock;
+        RobolectricInternals.inActivityControllerBlock = true;
+        try {
+            this.activity = constructor().in(activityClass).newInstance();
+        } finally {
+            RobolectricInternals.inActivityControllerBlock = priorValue;
+        }
         shadowActivity = shadowOf_(activity);
     }
 

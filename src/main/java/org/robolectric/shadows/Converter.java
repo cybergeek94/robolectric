@@ -2,12 +2,48 @@ package org.robolectric.shadows;
 
 import android.graphics.Color;
 import android.util.TypedValue;
+import org.robolectric.res.AttrData;
 import org.robolectric.res.ResType;
 import org.robolectric.res.TypedResource;
+import org.robolectric.util.Util;
 
-public class Converter {
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+public class Converter<T> {
+    private static final Map<String, ResType> ATTR_TYPE_MAP = new LinkedHashMap<String, ResType>();
+
+    static {
+        ATTR_TYPE_MAP.put("boolean", ResType.BOOLEAN);
+        ATTR_TYPE_MAP.put("color", ResType.COLOR);
+        ATTR_TYPE_MAP.put("dimension", ResType.DIMEN);
+        ATTR_TYPE_MAP.put("float", ResType.FLOAT);
+        ATTR_TYPE_MAP.put("integer", ResType.INTEGER);
+        ATTR_TYPE_MAP.put("string", ResType.CHAR_SEQUENCE);
+    }
+
+    public static Converter getConverter(AttrData attrData) {
+        String format = attrData.getFormat();
+        String[] types = format.split("\\|");
+        for (String type : types) {
+            if (ATTR_TYPE_MAP.containsKey(type)) {
+                return getConverter(ATTR_TYPE_MAP.get(type));
+            }
+        }
+
+        if (format.equals("enum")) {
+            return new EnumConverter(attrData);
+        } else if (format.equals("flag")) {
+            return new FlagConverter(attrData);
+        }
+
+        return null;
+    }
+
     public static Converter getConverter(ResType resType) {
         switch (resType) {
+            case ATTR_DATA:
+                return new FromCharSequence();
             case CHAR_SEQUENCE:
                 return new FromCharSequence();
             case COLOR:
@@ -40,7 +76,7 @@ public class Converter {
         throw cantDo("getItems");
     }
 
-    public void fillTypedValue(TypedResource typedResource, TypedValue typedValue) {
+    public void fillTypedValue(T data, TypedValue typedValue) {
         throw cantDo("fillTypedValue");
     }
 
@@ -59,17 +95,17 @@ public class Converter {
         }
     }
 
-    public static class FromColor extends Converter {
-        @Override public void fillTypedValue(TypedResource typedResource, TypedValue typedValue) {
+    public static class FromColor extends Converter<String> {
+        @Override public void fillTypedValue(String data, TypedValue typedValue) {
             typedValue.type = TypedValue.TYPE_INT_COLOR_ARGB8;
-            typedValue.data = Color.parseColor(typedResource.asString());
+            typedValue.data = Color.parseColor(data);
         }
     }
 
-    private static class FromColorStateList extends Converter {
-        @Override public void fillTypedValue(TypedResource typedResource, TypedValue typedValue) {
+    private static class FromColorStateList extends Converter<String> {
+        @Override public void fillTypedValue(String data, TypedValue typedValue) {
             typedValue.type = TypedValue.TYPE_STRING;
-            typedValue.string = typedResource.asString();
+            typedValue.string = data;
         }
     }
 
@@ -79,10 +115,10 @@ public class Converter {
         }
     }
 
-    private static class FromNumeric extends Converter {
-        @Override public void fillTypedValue(TypedResource typedResource, TypedValue typedValue) {
+    private static class FromNumeric extends Converter<String> {
+        @Override public void fillTypedValue(String data, TypedValue typedValue) {
             typedValue.type = TypedValue.TYPE_INT_HEX;
-            typedValue.data = convertInt(typedResource.asString());
+            typedValue.data = convertInt(data);
         }
 
         @Override public int asInt(TypedResource typedResource) {
@@ -91,16 +127,16 @@ public class Converter {
         }
     }
 
-    private static class FromBoolean extends Converter {
-        @Override public void fillTypedValue(TypedResource typedResource, TypedValue typedValue) {
+    private static class FromBoolean extends Converter<String> {
+        @Override public void fillTypedValue(String data, TypedValue typedValue) {
             typedValue.type = TypedValue.TYPE_INT_BOOLEAN;
-            typedValue.data = convertBool(typedResource.asString()) ? 1 : 0;
+            typedValue.data = convertBool(data) ? 1 : 0;
         }
 
     }
-    private static class FromDimen extends Converter {
-        @Override public void fillTypedValue(TypedResource typedResource, TypedValue typedValue) {
-            ResourceHelper.parseFloatAttribute(null, typedResource.asString(), typedValue, false);
+    private static class FromDimen extends Converter<String> {
+        @Override public void fillTypedValue(String data, TypedValue typedValue) {
+            ResourceHelper.parseFloatAttribute(null, data, typedValue, false);
         }
     }
 
@@ -135,5 +171,48 @@ public class Converter {
             return false;
         }
         return true;
+    }
+
+    private static class EnumConverter extends EnumOrFlagConverter {
+        public EnumConverter(AttrData attrData) {
+            super(attrData);
+        }
+
+        @Override public void fillTypedValue(String data, TypedValue typedValue) {
+            typedValue.type = TypedValue.TYPE_INT_HEX;
+            typedValue.data = findValueFor(data);
+        }
+    }
+
+    private static class FlagConverter extends EnumOrFlagConverter {
+        public FlagConverter(AttrData attrData) {
+            super(attrData);
+        }
+
+        @Override public void fillTypedValue(String data, TypedValue typedValue) {
+            int flags = 0;
+            for (String key : data.split("\\|")) {
+                flags |= findValueFor(key);
+            }
+
+            typedValue.type = TypedValue.TYPE_INT_HEX;
+            typedValue.data = flags;
+        }
+    }
+
+    private static class EnumOrFlagConverter extends Converter<String> {
+        private final AttrData attrData;
+
+        public EnumOrFlagConverter(AttrData attrData) {
+            this.attrData = attrData;
+        }
+
+        protected int findValueFor(String key) {
+            String valueFor = attrData.getValueFor(key);
+            if (valueFor == null) {
+                throw new RuntimeException("no value found for " + key);
+            }
+            return Util.parseInt(valueFor);
+        }
     }
 }

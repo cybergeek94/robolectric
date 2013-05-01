@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public enum ResType {
+    ATTR_DATA,
     BOOLEAN,
     COLOR,
     CHAR_SEQUENCE,
     COLOR_STATE_LIST,
     DIMEN,
+    FLOAT,
     INTEGER,
     STYLE {
         @Override public TypedResource getValueWithType(XpathResourceXmlLoader.XmlNode xmlNode) {

@@ -23,7 +23,6 @@ import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -101,9 +100,6 @@ import android.telephony.TelephonyManager;
 import android.text.ClipboardManager;
 import android.text.TextPaint;
 import android.text.format.DateFormat;
-import android.util.SparseArray;
-import android.util.SparseBooleanArray;
-import android.util.SparseIntArray;
 import android.view.Display;
 import android.view.GestureDetector;
 import android.view.InputDevice;
@@ -345,6 +341,7 @@ import org.robolectric.shadows.ShadowZoomButtonsController;
 import org.robolectric.tester.org.apache.http.FakeHttpLayer;
 import org.robolectric.tester.org.apache.http.HttpRequestInfo;
 import org.robolectric.tester.org.apache.http.RequestMatcher;
+import org.robolectric.util.ActivityController;
 import org.robolectric.util.Scheduler;
 
 import java.lang.reflect.Field;
@@ -1401,6 +1398,10 @@ public class Robolectric {
         ShadowPowerManager.reset();
         ShadowStatFs.reset();
         ShadowTypeface.reset();
+    }
+
+    public static <T extends Activity> ActivityController<T> buildActivity(Class<T> activityClass) {
+        return new ActivityController<T>(activityClass);
     }
 
     /**
