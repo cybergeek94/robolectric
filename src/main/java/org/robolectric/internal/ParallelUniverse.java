@@ -12,10 +12,12 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.TestLifecycle;
 import org.robolectric.res.ResourceLoader;
 import org.robolectric.res.builder.RobolectricPackageManager;
+import org.robolectric.shadows.ShadowContext;
 import org.robolectric.shadows.ShadowContextImpl;
 import org.robolectric.shadows.ShadowResources;
 import org.robolectric.util.DatabaseConfig;
 
+import java.io.File;
 import java.lang.reflect.Method;
 
 import static org.fest.reflect.core.Reflection.*;
@@ -75,6 +77,9 @@ public class ParallelUniverse implements ParallelUniverseInterface {
             if (appManifest == null) {
                 applicationInfo = new ApplicationInfo();
                 applicationInfo.packageName = "some.package.name";
+                applicationInfo.sourceDir = new File(".").getAbsolutePath();
+                // todo: this should be deleted after each test...
+                applicationInfo.dataDir = ShadowContext.createTempDir("data").getAbsolutePath();
             } else {
                 try {
                     applicationInfo = Robolectric.packageManager.getApplicationInfo(appManifest.getPackageName(), 0);
@@ -88,7 +93,10 @@ public class ParallelUniverse implements ParallelUniverseInterface {
                     .withParameterTypes(ApplicationInfo.class, compatibilityInfoClass, ClassLoader.class, boolean.class, boolean.class)
                     .in(activityThread)
                     .invoke(applicationInfo, null, getClass().getClassLoader(), false, true);
-            System.out.println("loadedApk = " + loadedApk);
+
+            shadowOf(application).bind(appManifest, resourceLoader);
+            Resources appResources = application.getResources();
+            field("mResources").ofType(Resources.class).in(loadedApk).set(appResources);
 
             Context contextImpl = method("createPackageContext")
                     .withReturnType(Context.class)
@@ -101,9 +109,7 @@ public class ParallelUniverse implements ParallelUniverseInterface {
                     .in(application)
                     .invoke(contextImpl);
 
-            shadowOf(application).bind(appManifest, resourceLoader);
-            Resources resources = application.getResources();
-            resources.updateConfiguration(configuration, resources.getDisplayMetrics());
+            appResources.updateConfiguration(configuration, appResources.getDisplayMetrics());
             shadowOf(application).setStrictI18n(strictI18n);
 
             Robolectric.application = application;

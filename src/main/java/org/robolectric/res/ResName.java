@@ -16,7 +16,7 @@ public class ResName {
     public final @NotNull String name;
 
     public ResName(@NotNull String namespace, @NotNull String type, @NotNull String name) {
-        this.name = name;
+        this.name = name.indexOf('.') != -1 ? name.replace('.', '_') : name;
         this.namespace = namespace;
         this.type = type;
     }
@@ -28,12 +28,14 @@ public class ResName {
         }
         namespace = matcher.group(NAMESPACE);
         type = matcher.group(TYPE);
-        name = matcher.group(NAME);
+      String nameStr = matcher.group(NAME);
+      name = nameStr.indexOf('.') != -1 ? nameStr.replace('.', '_') : nameStr;
 
         if (namespace.equals("xmlns")) throw new IllegalStateException("\"" + fullyQualifiedName + "\" unexpected");
     }
 
-    public static @NotNull String qualifyResourceName(@NotNull String possiblyQualifiedResourceName, String defaultPackageName, String defaultType) {
+    public static @NotNull
+    String qualifyResourceName(@NotNull String possiblyQualifiedResourceName, String defaultPackageName, String defaultType) {
         ResName resName = qualifyResName(possiblyQualifiedResourceName, defaultPackageName, defaultType);
         return resName.getFullyQualifiedName();
     }
@@ -42,7 +44,8 @@ public class ResName {
         return qualifyResName(possiblyQualifiedResourceName, defaults.namespace, defaults.type);
     }
 
-    public static @NotNull ResName qualifyResName(@NotNull String possiblyQualifiedResourceName, String defaultPackageName, String defaultType) {
+    public static @NotNull
+    ResName qualifyResName(@NotNull String possiblyQualifiedResourceName, String defaultPackageName, String defaultType) {
         int indexOfColon = possiblyQualifiedResourceName.indexOf(':');
         int indexOfSlash = possiblyQualifiedResourceName.indexOf('/');
         String packageName = indexOfColon == -1 ? null : possiblyQualifiedResourceName.substring(0, indexOfColon);
@@ -55,7 +58,7 @@ public class ResName {
     }
 
     public static Integer getResourceId(ResourceIndex resourceIndex, String possiblyQualifiedResourceName, String contextPackageName) {
-        if (possiblyQualifiedResourceName == null ) {
+        if (possiblyQualifiedResourceName == null) {
             return null;
         }
 
@@ -109,5 +112,11 @@ public class ResName {
     public ResName withPackageName(String packageName) {
         if (packageName.equals(namespace)) return this;
         return new ResName(packageName, type, name);
+    }
+
+    public void mustBe(String expectedType) {
+        if (!type.equals(expectedType)) {
+            throw new RuntimeException("expected " + getFullyQualifiedName() + " to be a " + expectedType);
+        }
     }
 }

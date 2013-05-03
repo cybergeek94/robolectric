@@ -7,11 +7,9 @@ import org.robolectric.Robolectric;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.internal.RealObject;
-import org.robolectric.res.AttrData;
 import org.robolectric.res.Attribute;
 import org.robolectric.res.ResName;
 import org.robolectric.res.ResourceIndex;
-import org.robolectric.res.TypedResource;
 import org.robolectric.util.Util;
 
 import java.util.List;
@@ -35,46 +33,30 @@ public class ShadowTypedArray implements UsesResources {
         List<Integer> wantedAttrsList = Util.intArrayToList(attrs);
 
         for (int i = 0; i < attrs.length; i++) {
-            int offset = nextIndex * ShadowAssetManager.STYLE_NUM_ENTRIES;
+            int offset = i * ShadowAssetManager.STYLE_NUM_ENTRIES;
 
             int attr = attrs[i];
             ResourceIndex resourceIndex = shadowOf(resources).getResourceLoader().getResourceIndex();
             ResName attrName = resourceIndex.getResName(attr);
-            System.out.println("Looking for " + attrName + " from style index " + i);
+//            System.out.println("Looking for " + attrName + " from style index " + i);
             if (attrName != null) {
                 Attribute attribute = Attribute.find(set, attrName.getFullyQualifiedName());
+                TypedValue typedValue = new TypedValue();
+                Converter.convertAndFill(attribute, resources, typedValue);
+
+
                 if (attribute != null && !attribute.isNull()) {
-                    TypedResource attrTypeData = shadowOf(resources).getResourceLoader().getValue(attrName, "");
+                    //noinspection PointlessArithmeticExpression
+                    data[offset + ShadowAssetManager.STYLE_TYPE] = typedValue.type;
+                    data[offset + ShadowAssetManager.STYLE_DATA] = typedValue.type == TypedValue.TYPE_STRING ? i : typedValue.data;
+                    data[offset + ShadowAssetManager.STYLE_ASSET_COOKIE] = typedValue.assetCookie;
+                    data[offset + ShadowAssetManager.STYLE_RESOURCE_ID] = typedValue.resourceId;
+                    data[offset + ShadowAssetManager.STYLE_CHANGING_CONFIGURATIONS] = typedValue.changingConfigurations;
+                    data[offset + ShadowAssetManager.STYLE_DENSITY] = typedValue.density;
+                    stringData[i] = typedValue.string;
 
-                    if (attribute.isReference()) {
-                        ResName resName = attribute.getReferenceResName();
-                        Integer resourceId = resourceIndex.getResourceId(resName);
-                        if (resourceId == null) {
-                            throw new Resources.NotFoundException("unknown resource " + resName + " referred to from " + attribute);
-                        }
-                        //noinspection PointlessArithmeticExpression
-                        data[offset + ShadowAssetManager.STYLE_TYPE] = TypedValue.TYPE_REFERENCE;
-                        data[offset + ShadowAssetManager.STYLE_RESOURCE_ID] = resourceId;
-                    } else {
-                        Converter converter = Converter.getConverter((AttrData) attrTypeData.getData());
-                        TypedValue typedValue = new TypedValue();
-                        try {
-                            converter.fillTypedValue(attribute.value, typedValue);
-                        } catch (Exception e) {
-                            throw new Resources.NotFoundException("couldn't evaluate value from " + attribute);
-                        }
-
-                        //noinspection PointlessArithmeticExpression
-                        data[offset + ShadowAssetManager.STYLE_TYPE] = typedValue.type;
-                        data[offset + ShadowAssetManager.STYLE_DATA] = typedValue.type == TypedValue.TYPE_STRING ? i : typedValue.data;
-                        data[offset + ShadowAssetManager.STYLE_ASSET_COOKIE] = typedValue.assetCookie;
-                        data[offset + ShadowAssetManager.STYLE_CHANGING_CONFIGURATIONS] = typedValue.changingConfigurations;
-                        data[offset + ShadowAssetManager.STYLE_DENSITY] = typedValue.density;
-                        stringData[i] = typedValue.string;
-                    }
-
-                    indices[i + 1] = nextIndex;
-                    System.out.println("value of " + attrName + " is " + attribute.value + "; index is " + nextIndex + "; in style is " + i);
+                    indices[nextIndex + 1] = i;
+//                    System.out.println("value of " + attrName + " is " + attribute.value + "; index is " + nextIndex + "; in style is " + i);
 
                     nextIndex++;
                 }

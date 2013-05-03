@@ -16,16 +16,6 @@ import android.content.res.AssetManager;
 import android.content.res.Resources;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Looper;
-import android.view.View;
-import org.robolectric.AndroidManifest;
-import org.robolectric.Robolectric;
-import org.robolectric.internal.Implementation;
-import org.robolectric.internal.Implements;
-import org.robolectric.internal.RealObject;
-import org.robolectric.res.Attribute;
-import org.robolectric.res.ResourceLoader;
-import org.robolectric.tester.android.content.TestSharedPreferences;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -33,6 +23,13 @@ import java.io.FileOutputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.robolectric.AndroidManifest;
+import org.robolectric.Robolectric;
+import org.robolectric.internal.Implementation;
+import org.robolectric.internal.Implements;
+import org.robolectric.internal.RealObject;
+import org.robolectric.res.ResourceLoader;
+import org.robolectric.tester.android.content.TestSharedPreferences;
 
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
@@ -83,11 +80,11 @@ public class ShadowContextWrapper extends ShadowContext {
         return super.getDatabasePath(name);
     }
 
-    @Implementation
-    @Override public File getDir(String name, int mode) {
-        return super.getDir(name, mode);
-    }
-
+    //@Implementation
+    //@Override public File getDir(String name, int mode) {
+    //    return super.getDir(name, mode);
+    //}
+    //
     @Implementation
     @Override public File getFileStreamPath(String name) {
         return super.getFileStreamPath(name);

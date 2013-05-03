@@ -1,5 +1,5 @@
 package org.robolectric.res;
 
 public interface Style {
-    String getAttrValue(String name);
+    String getAttrValue(ResName resName);
 }

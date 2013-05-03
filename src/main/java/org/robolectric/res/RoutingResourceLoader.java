@@ -1,12 +1,12 @@
 package org.robolectric.res;
 
 import android.view.View;
-import org.w3c.dom.Document;
-
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Document;
 
 public class RoutingResourceLoader implements ResourceLoader {
     private final Map<String, ResourceLoader> resourceLoaders;
@@ -27,7 +27,7 @@ public class RoutingResourceLoader implements ResourceLoader {
         return pickFor(id).getNameForId(id);
     }
 
-    @Override public TypedResource getValue(ResName resName, String qualifiers) {
+    @Override public TypedResource getValue(@NotNull ResName resName, String qualifiers) {
         return pickFor(resName).getValue(resName, qualifiers);
     }
 

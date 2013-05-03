@@ -328,7 +328,8 @@ public class ViewTest {
                 called.set(true);
             }
         };
-        RoboAttributeSet attrs = new RoboAttributeSet(new ArrayList<Attribute>(), null, null);
+        RoboAttributeSet attrs = new RoboAttributeSet(new ArrayList<Attribute>(),
+            (ResourceLoader) null, null);
         attrs.put("android:onClick", "clickYou", R.class.getPackage().getName());
 
         view = new View(context, attrs);

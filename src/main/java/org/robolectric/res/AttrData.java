@@ -22,6 +22,7 @@ public class AttrData {
     }
 
     public String getValueFor(String key) {
+        if (pairs == null) return null;
         for (Pair pair : pairs) {
             if (pair.name.equals(key)) {
                 return pair.value;
@@ -30,7 +31,14 @@ public class AttrData {
         return null;
     }
 
-    public static class Pair {
+  @Override public String toString() {
+    return "AttrData{" +
+        "name='" + name + '\'' +
+        ", format='" + format + '\'' +
+        '}';
+  }
+
+  public static class Pair {
         private final String name;
         private final String value;
 

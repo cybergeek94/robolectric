@@ -16,6 +16,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.res.Attribute;
+import org.robolectric.res.ResourceLoader;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +57,7 @@ public class ShadowMapView extends ShadowViewGroup {
 
     public void __constructor__(Context context) {
         field("mContext").ofType(Context.class).in(realView).set(context);
-        this.attributeSet = new RoboAttributeSet(new ArrayList<Attribute>(), null, null);
+        this.attributeSet = new RoboAttributeSet(new ArrayList<Attribute>(), (ResourceLoader) null, null);
         getConstructor(View.class, realView, Context.class)
                 .invoke(context);
         getConstructor(ViewGroup.class, realView, Context.class)

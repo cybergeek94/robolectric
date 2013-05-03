@@ -8,7 +8,7 @@ public class NewAttrResourceLoader extends XpathResourceXmlLoader {
     private final ResBunch resBunch;
 
     public NewAttrResourceLoader(ResBunch resBunch) {
-        super("/resources//attr");
+        super("//attr");
         this.resBunch = resBunch;
     }
 
@@ -19,22 +19,22 @@ public class NewAttrResourceLoader extends XpathResourceXmlLoader {
         List<AttrData.Pair> pairs = null;
 
         if (format == null) {
-            pairs = new ArrayList<AttrData.Pair>();
+            XmlNode firstChild = xmlNode.getFirstChild();
+            format = firstChild == null ? null : firstChild.getElementName();
+        }
 
+        if ("enum".equals(format)) {
+            pairs = new ArrayList<AttrData.Pair>();
             for (XmlNode enumNode : xmlNode.selectElements("enum")) {
-                format = "enum";
                 pairs.add(new AttrData.Pair(enumNode.getAttrValue("name"), enumNode.getAttrValue("value")));
             }
-
+        } else if ("flag".equals(format)) {
+            pairs = new ArrayList<AttrData.Pair>();
             for (XmlNode flagNode : xmlNode.selectElements("flag")) {
-                if ("enum".equals(format)) {
-                    throw new IllegalStateException(
-                            "you can't have a mix of enums and flags for \"" + name + "\" in " + xmlContext);
-                }
-                format = "flag";
                 pairs.add(new AttrData.Pair(flagNode.getAttrValue("name"), flagNode.getAttrValue("value")));
             }
         }
+
         if (format == null) {
             return;
 //            throw new IllegalStateException(

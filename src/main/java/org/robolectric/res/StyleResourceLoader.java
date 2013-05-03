@@ -12,19 +12,27 @@ public class StyleResourceLoader extends XpathResourceXmlLoader {
 
     @Override
     protected void processNode(String name, XmlNode xmlNode, XmlContext xmlContext) throws XPathExpressionException {
-        String styleName = underscorize(xmlNode.getAttrValue("name"));
-        String styleParent = underscorize(xmlNode.getAttrValue("parent"));
+        String styleName = xmlNode.getAttrValue("name");
+        String styleParent = xmlNode.getAttrValue("parent");
+        if (styleParent == null) {
+            int lastDot = styleName.lastIndexOf('.');
+            if (lastDot != -1) {
+                styleParent = styleName.substring(0, lastDot);
+            }
+        }
 
-        StyleData styleData = new StyleData(styleName, styleParent);
+        String styleNameWithUnderscores = underscorize(styleName);
+        StyleData styleData = new StyleData(styleNameWithUnderscores, underscorize(styleParent));
 
         for (XmlNode item : xmlNode.selectElements("item")) {
             String attrName = item.getAttrValue("name");
             String value = item.getTextContent();
 
-            styleData.add(attrName, value);
+            ResName attrResName = ResName.qualifyResName(attrName, xmlContext.packageName, "attr");
+            styleData.add(attrResName, value);
         }
 
-        data.put("style", styleName, new TypedResource<StyleData>(styleData, ResType.STYLE), xmlContext);
+        data.put("style", styleNameWithUnderscores, new TypedResource<StyleData>(styleData, ResType.STYLE), xmlContext);
     }
 
     private String underscorize(String s) {

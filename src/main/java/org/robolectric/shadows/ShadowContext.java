@@ -37,15 +37,15 @@ abstract public class ShadowContext {
     @RealObject private Context realContext;
     private ShadowApplication shadowApplication;
 
-    @Implementation
-    public File getDir(String name, int mode) {
-        // TODO: honor operating mode.
-        File file = new File(FILES_DIR, name);
-        if (!file.exists()) {
-            file.mkdir();
-        }
-        return file;
-    }
+//    @Implementation
+//    public File getDir(String name, int mode) {
+//        // TODO: honor operating mode.
+//        File file = new File(FILES_DIR, name);
+//        if (!file.exists()) {
+//            file.mkdir();
+//        }
+//        return file;
+//    }
 
     @Implementation
     public String getString(int resId) {
@@ -169,7 +169,8 @@ abstract public class ShadowContext {
         }
     }
 
-    private static File createTempDir(String name) {
+    public static File createTempDir(String name) {
+        // todo: need to clear these out between tests, delete recursively, etc...
         try {
             File tmp = File.createTempFile(name, "robolectric");
             if (!tmp.delete()) throw new IOException("could not delete "+tmp);

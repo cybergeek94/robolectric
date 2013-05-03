@@ -1,14 +1,20 @@
 package org.robolectric.shadows;
 
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.util.TypedValue;
 import org.robolectric.res.AttrData;
+import org.robolectric.res.Attribute;
+import org.robolectric.res.ResName;
 import org.robolectric.res.ResType;
+import org.robolectric.res.ResourceLoader;
 import org.robolectric.res.TypedResource;
 import org.robolectric.util.Util;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import static org.robolectric.Robolectric.shadowOf;
 
 public class Converter<T> {
     private static final Map<String, ResType> ATTR_TYPE_MAP = new LinkedHashMap<String, ResType>();
@@ -22,28 +28,78 @@ public class Converter<T> {
         ATTR_TYPE_MAP.put("string", ResType.CHAR_SEQUENCE);
     }
 
-    public static Converter getConverter(AttrData attrData) {
+    public static void convertAndFill(Attribute attribute, Resources resources, TypedValue outValue) {
+        if (attribute == null || attribute.isNull()) {
+            outValue.type = TypedValue.TYPE_NULL;
+            return;
+        }
+
+        ResourceLoader resourceLoader = shadowOf(resources).getResourceLoader();
+        String qualifiers = shadowOf(resources.getAssets()).getQualifiers();
+        TypedResource attrTypeData = resourceLoader.getValue(attribute.resName, qualifiers);
+        if (attrTypeData != null) {
+            convertAndFill(attribute.value, attribute.contextPackageName, resourceLoader, outValue, (AttrData) attrTypeData.getData());
+        }
+    }
+
+    public static void convertAndFill(String value, String contextPackageName, ResourceLoader resourceLoader, TypedValue outValue, AttrData attrData) {
         String format = attrData.getFormat();
         String[] types = format.split("\\|");
         for (String type : types) {
-            if (ATTR_TYPE_MAP.containsKey(type)) {
-                return getConverter(ATTR_TYPE_MAP.get(type));
+            if (value.startsWith("@") && "reference".equals(type)) {
+                ResName resName = ResName.qualifyResName(value.substring(1).replace("+", ""), contextPackageName, null);
+                Integer resourceId = resourceLoader.getResourceIndex().getResourceId(resName);
+                if (resourceId == null) {
+                    throw new Resources.NotFoundException("unknown resource " + resName);
+                }
+
+                // todo: this sucks, but Resources#getDrawable() wants a value in typedValue.string,
+                // todo:    which will only be passed through by Resources#getValueAt if type is TYPE_STRING
+                if (resName.type.equals("drawable")) {
+                    outValue.string = resName.getFullyQualifiedName();
+                    outValue.type = TypedValue.TYPE_STRING;
+                } else {
+                    outValue.string = resName.getFullyQualifiedName();
+                    outValue.type = TypedValue.TYPE_REFERENCE;
+                    outValue.resourceId = resourceId;
+                }
+                return;
+            }
+
+            Converter converter = ATTR_TYPE_MAP.containsKey(type)
+                    ? getConverter(ATTR_TYPE_MAP.get(type))
+                    : null;
+
+            if (converter == null) {
+                if (format.equals("enum")) {
+                    converter = new EnumConverter(attrData);
+                } else if (format.equals("flag")) {
+                    converter = new FlagConverter(attrData);
+                }
+            }
+
+            if (converter != null) {
+              try {
+                  converter.fillTypedValue(value, outValue);
+              } catch (Exception e) {
+                throw new RuntimeException("error converting " + value + " using " + converter.getClass().getSimpleName(), e);
+              }
+              return;
             }
         }
+    }
 
-        if (format.equals("enum")) {
-            return new EnumConverter(attrData);
-        } else if (format.equals("flag")) {
-            return new FlagConverter(attrData);
-        }
+    public static Converter getConverters(AttrData attrData) {
 
-        return null;
+        throw new RuntimeException("no converter for " + attrData);
     }
 
     public static Converter getConverter(ResType resType) {
         switch (resType) {
             case ATTR_DATA:
-                return new FromCharSequence();
+                return new FromAttrData();
+            case BOOLEAN:
+                return new FromBoolean();
             case CHAR_SEQUENCE:
                 return new FromCharSequence();
             case COLOR:
@@ -57,8 +113,6 @@ public class Converter<T> {
             case CHAR_SEQUENCE_ARRAY:
             case INTEGER_ARRAY:
                 return new FromArray();
-            case BOOLEAN:
-                return new FromBoolean();
             default:
                 throw new UnsupportedOperationException(resType.name());
         }
@@ -84,7 +138,17 @@ public class Converter<T> {
         return new UnsupportedOperationException(getClass().getName() + " doesn't support " + operation);
     }
 
-    public static class FromCharSequence extends Converter {
+    public static class FromAttrData extends Converter<AttrData> {
+        @Override public CharSequence asCharSequence(TypedResource typedResource) {
+            return typedResource.asString();
+        }
+
+        @Override public void fillTypedValue(AttrData data, TypedValue typedValue) {
+            typedValue.type = TypedValue.TYPE_STRING;
+        }
+    }
+
+    public static class FromCharSequence extends Converter<String> {
         @Override public CharSequence asCharSequence(TypedResource typedResource) {
             return typedResource.asString();
         }
@@ -92,6 +156,11 @@ public class Converter<T> {
         @Override public int asInt(TypedResource typedResource) {
             String rawValue = typedResource.asString();
             return convertInt(rawValue);
+          }
+
+        @Override public void fillTypedValue(String data, TypedValue typedValue) {
+            typedValue.type = TypedValue.TYPE_STRING;
+            typedValue.string = data;
         }
     }
 
@@ -134,6 +203,7 @@ public class Converter<T> {
         }
 
     }
+
     private static class FromDimen extends Converter<String> {
         @Override public void fillTypedValue(String data, TypedValue typedValue) {
             ResourceHelper.parseFloatAttribute(null, data, typedValue, false);

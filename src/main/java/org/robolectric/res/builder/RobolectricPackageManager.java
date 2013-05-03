@@ -9,8 +9,10 @@ import android.content.pm.ResolveInfo;
 import android.graphics.drawable.Drawable;
 import android.util.Pair;
 import org.robolectric.AndroidManifest;
+import org.robolectric.shadows.ShadowContext;
 import org.robolectric.tester.android.content.pm.StubPackageManager;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,6 +56,9 @@ public class RobolectricPackageManager extends StubPackageManager {
                 applicationInfo.packageName = androidManifest.getPackageName();
                 applicationInfo.processName = androidManifest.getProcessName();
                 applicationInfo.name = androidManifest.getApplicationName();
+                applicationInfo.sourceDir = new File(".").getAbsolutePath();
+                // todo: this should be deleted after each test...
+                applicationInfo.dataDir = ShadowContext.createTempDir("data-" + androidManifest.getPackageName()).getAbsolutePath();
             }
             return applicationInfo;
         }
@@ -65,6 +70,8 @@ public class RobolectricPackageManager extends StubPackageManager {
 
         throw new NameNotFoundException();
     }
+
+
 
     @Override
     public List<PackageInfo> getInstalledPackages(int flags) {

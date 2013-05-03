@@ -1,10 +1,10 @@
 package org.robolectric.res;
 
 import android.view.View;
-import org.w3c.dom.Document;
-
 import java.io.IOException;
 import java.io.InputStream;
+import org.jetbrains.annotations.NotNull;
+import org.w3c.dom.Document;
 
 abstract class XResourceLoader implements ResourceLoader {
     final AttrResourceLoader attrResourceLoader = new AttrResourceLoader();
@@ -52,7 +52,7 @@ abstract class XResourceLoader implements ResourceLoader {
         return resourceIndex.getResourceName(id);
     }
 
-    public TypedResource getValue(ResName resName, String qualifiers) {
+    public TypedResource getValue(@NotNull ResName resName, String qualifiers) {
         initialize();
         ResBunch.Value value = data.getValue(resName, qualifiers);
         return value == null ? null : value.getTypedResource();

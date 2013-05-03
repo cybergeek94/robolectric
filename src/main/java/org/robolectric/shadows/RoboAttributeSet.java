@@ -118,7 +118,7 @@ public class RoboAttributeSet implements AttributeSet {
     public String getAttributeValue(String namespace, String attribute) {
         Attribute attr = findByName(namespace, attribute);
         if (attr != null && !attr.isNull()) {
-            return attr.value;
+            return attr.qualifiedValue();
             //if (attr.isReference()) {
             //    ResName referenceResName = attr.getReferenceResName();
             //    return resources.getString(resourceLoader.getResourceIndex().getResourceId(referenceResName));

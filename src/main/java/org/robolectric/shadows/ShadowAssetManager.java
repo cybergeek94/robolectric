@@ -1,18 +1,28 @@
 package org.robolectric.shadows;
 
+import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
+import android.content.res.Resources;
 import android.util.TypedValue;
+import org.jetbrains.annotations.NotNull;
 import org.robolectric.AndroidManifest;
 import org.robolectric.internal.HiddenApi;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
+import org.robolectric.res.AttrData;
 import org.robolectric.res.FsFile;
 import org.robolectric.res.ResName;
+import org.robolectric.res.ResourceIndex;
 import org.robolectric.res.ResourceLoader;
+import org.robolectric.res.Style;
+import org.robolectric.res.StyleData;
 import org.robolectric.res.TypedResource;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.robolectric.Robolectric.shadowOf;
 
@@ -29,6 +39,8 @@ public final class ShadowAssetManager {
     public static final int STYLE_DENSITY = 5;
 
     private String qualifiers = "";
+    private Map<Integer, Resources.Theme> themesById = new LinkedHashMap<Integer, Resources.Theme>();
+    private int nextInternalThemeId = 1000;
 
     static AssetManager bind(AssetManager assetManager, AndroidManifest androidManifest, ResourceLoader resourceLoader) {
         ShadowAssetManager shadowAssetManager = shadowOf(assetManager);
@@ -44,7 +56,7 @@ public final class ShadowAssetManager {
     @HiddenApi @Implementation
     public CharSequence getResourceText(int ident) {
         ResName resName = resourceLoader.getResourceIndex().getResName(ident);
-        TypedResource value = getAndResolve(resName, getQualifiers());
+        TypedResource value = getAndResolve(resName, getQualifiers(), true);
         if (value == null) return null;
         return (CharSequence) value.getData();
     }
@@ -68,7 +80,7 @@ public final class ShadowAssetManager {
     @HiddenApi @Implementation
     public boolean getResourceValue(int ident, int density, TypedValue outValue, boolean resolveRefs) {
         ResName resName = resourceLoader.getResourceIndex().getResName(ident);
-        TypedResource value = getAndResolve(resName, getQualifiers());
+        TypedResource value = getAndResolve(resName, getQualifiers(), resolveRefs);
         if (value == null) return false;
 
         getConverter(value).fillTypedValue(value.getData(), outValue);
@@ -82,7 +94,7 @@ public final class ShadowAssetManager {
     @HiddenApi @Implementation
     public CharSequence[] getResourceTextArray(final int id) {
         ResName resName = resourceLoader.getResourceIndex().getResName(id);
-        TypedResource value = getAndResolve(resName, getQualifiers());
+        TypedResource value = getAndResolve(resName, getQualifiers(), true);
         if (value == null) return null;
         TypedResource[] items = getConverter(value).getItems(value);
         CharSequence[] charSequences = new CharSequence[items.length];
@@ -95,7 +107,36 @@ public final class ShadowAssetManager {
 
     @HiddenApi @Implementation
     public boolean getThemeValue(int theme, int ident, TypedValue outValue, boolean resolveRefs) {
-        throw new UnsupportedOperationException(); // todo
+        ResourceIndex resourceIndex = resourceLoader.getResourceIndex();
+        ResName resName = resourceIndex.getResName(ident);
+        Resources.Theme theTheme = getThemeByInternalId(theme);
+        // Load the style for the theme we represent. E.g. "@style/Theme.Robolectric"
+        ResName themeStyleName = resourceIndex.getResName(shadowOf(theTheme).getStyleResourceId());
+
+        Style themeStyle = resolveStyle(resourceLoader, themeStyleName, getQualifiers());
+
+        //// Load the theme attribute for the default style attributes. E.g., attr/buttonStyle
+        //ResName defStyleName = resourceLoader.getResourceIndex().getResName(ident);
+        //
+        //// Load the style for the default style attribute. E.g. "@style/Widget.Robolectric.Button";
+        //String defStyleNameValue = themeStyle.getAttrValue(defStyleName);
+        //ResName defStyleResName = new ResName(defStyleName.namespace, "style", defStyleName.name);
+        //Style style = resolveStyle(resourceLoader, defStyleResName, getQualifiers());
+        if (themeStyle != null) {
+            String attrValue = themeStyle.getAttrValue(resName);
+            if (attrValue == null) {
+                System.out.println("Couldn't find " + resName + " in " + themeStyleName);
+            } else {
+                TypedResource attrDataValue = resourceLoader.getValue(resName, getQualifiers());
+                if (attrDataValue == null)
+                    throw new Resources.NotFoundException("Couldn't find " + resName + " attr data");
+                AttrData attrData = (AttrData) attrDataValue.getData();
+                Converter.convertAndFill(attrValue, "fizixmizee", resourceLoader, outValue,
+                        attrData);
+                return true;
+            }
+        }
+        return false;
     }
 
     @HiddenApi @Implementation
@@ -117,6 +158,32 @@ public final class ShadowAssetManager {
     }
 
     @HiddenApi @Implementation
+    public final InputStream openNonAsset(int cookie, String fileName, int accessMode) {
+//        ResName resName = new ResName(fileName);
+//        resourceLoader.getDrawableNode(resName)
+        return new ByteArrayInputStream(fileName.getBytes()); // todo: something better
+    }
+
+    @HiddenApi @Implementation
+    public final AssetFileDescriptor openNonAssetFd(int cookie, String fileName) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @HiddenApi @Implementation
+    public boolean isUpToDate() {
+        return true;
+    }
+
+    @HiddenApi @Implementation
+    public void setLocale(String locale) {
+    }
+
+    @Implementation
+    public String[] getLocales() {
+        return new String[0]; // todo
+    }
+
+    @HiddenApi @Implementation
     public void setConfiguration(int mcc, int mnc, String locale,
                                  int orientation, int touchscreen, int density, int keyboard,
                                  int keyboardHidden, int navigation, int screenWidth, int screenHeight,
@@ -127,7 +194,7 @@ public final class ShadowAssetManager {
     @HiddenApi @Implementation
     public int[] getArrayIntResource(int arrayRes) {
         ResName resName = resourceLoader.getResourceIndex().getResName(arrayRes);
-        TypedResource value = getAndResolve(resName, getQualifiers());
+        TypedResource value = getAndResolve(resName, getQualifiers(), true);
         if (value == null) return null;
         TypedResource[] items = getConverter(value).getItems(value);
         int[] ints = new int[items.length];
@@ -138,11 +205,45 @@ public final class ShadowAssetManager {
         return ints;
     }
 
+    @HiddenApi @Implementation
+    synchronized public int createTheme() {
+        return nextInternalThemeId++;
+    }
 
+    @HiddenApi @Implementation
+    synchronized public void releaseTheme(int theme) {
+        themesById.remove(theme);
+    }
+
+    @HiddenApi @Implementation
+    public static void applyThemeStyle(int theme, int styleRes, boolean force) {
+        throw new UnsupportedOperationException();
+    }
+
+    @HiddenApi @Implementation
+    public static void copyTheme(int dest, int source) {
+        throw new UnsupportedOperationException();
+    }
 
     /////////////////////////
 
-    TypedResource getAndResolve(ResName resName, String qualifiers) {
+    synchronized public void setTheme(int internalThemeId, Resources.Theme theme) {
+        themesById.put(internalThemeId, theme);
+    }
+
+    synchronized private Resources.Theme getThemeByInternalId(int internalThemeId) {
+        return themesById.get(internalThemeId);
+    }
+
+    static Style resolveStyle(ResourceLoader resourceLoader, ResName themeStyleName, String qualifiers) {
+        TypedResource themeStyleResource = resourceLoader.getValue(themeStyleName, qualifiers);
+        if (themeStyleResource == null) return null;
+        StyleData themeStyleData = (StyleData) themeStyleResource.getData();
+        return new StyleResolver(resourceLoader, themeStyleData, themeStyleName, qualifiers);
+    }
+
+    // todo: this shouldn't always resolve
+    TypedResource getAndResolve(@NotNull ResName resName, String qualifiers, boolean resolveRefs) {
         if (resName == null) return null;
         TypedResource value = resourceLoader.getValue(resName, qualifiers);
         return resolve(value, qualifiers, resName);
@@ -171,11 +272,6 @@ public final class ShadowAssetManager {
         }
     }
 
-    @HiddenApi @Implementation
-    public final int createTheme() {
-        return 1;
-    }
-
     public FsFile getAssetsDirectory() {
         return appManifest.getAssetsDirectory();
     }
@@ -186,5 +282,37 @@ public final class ShadowAssetManager {
 
     public void setQualifiers(String qualifiers) {
         this.qualifiers = qualifiers;
+    }
+
+    static class StyleResolver implements Style {
+        private final ResourceLoader resourceLoader;
+        private final StyleData leafStyle;
+        private final ResName myResName;
+        private final String qualifiers;
+
+        public StyleResolver(ResourceLoader resourceLoader, StyleData styleData, ResName myResName, String qualifiers) {
+            this.resourceLoader = resourceLoader;
+            this.leafStyle = styleData;
+            this.myResName = myResName;
+            this.qualifiers = qualifiers;
+        }
+
+        @Override public String getAttrValue(ResName resName) {
+            resName.mustBe("attr");
+            StyleData currentStyle = leafStyle;
+            while (currentStyle != null) {
+                String value = currentStyle.getAttrValue(resName);
+                if (value != null) return value;
+                currentStyle = getParent(currentStyle);
+            }
+            return null;
+        }
+
+        private StyleData getParent(StyleData currentStyle) {
+            String parent = currentStyle.getParent();
+            if (parent == null) return null;
+            TypedResource typedResource = resourceLoader.getValue(ResName.qualifyResName(parent, myResName), qualifiers);
+            return typedResource == null ? null : (StyleData) typedResource.getData();
+        }
     }
 }

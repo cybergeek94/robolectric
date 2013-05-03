@@ -19,59 +19,6 @@ public class Attribute {
     public final @NotNull String value;
     public final @NotNull String contextPackageName;
 
-    public Attribute(@NotNull String fullyQualifiedName, @NotNull String value, @NotNull String contextPackageName) {
-        this(new ResName(fullyQualifiedName), value, contextPackageName);
-    }
-
-    public Attribute(@NotNull ResName resName, @NotNull String value, @NotNull String contextPackageName) {
-        if (!resName.type.equals("attr")) throw new IllegalStateException("\"" + resName.getFullyQualifiedName() + "\" unexpected");
-
-        this.resName = resName;
-        this.value = value;
-        this.contextPackageName = contextPackageName;
-    }
-
-    public Attribute(Node attr, XmlLoader.XmlContext xmlContext) {
-        this(extractPackageName(attr.getNamespaceURI(), xmlContext) + ":attr/" + attr.getLocalName(),
-                attr.getNodeValue(),
-                xmlContext.packageName);
-    }
-
-    private static String extractPackageName(String namespaceUri, XmlLoader.XmlContext xmlContext) {
-        if (namespaceUri == null) {
-            return "";
-        }
-
-        if (RES_AUTO_NS_URI.equals(namespaceUri)) {
-            return xmlContext.packageName;
-        }
-
-        return extractPackageName(namespaceUri);
-    }
-
-    public static String extractPackageName(String namespaceUri) {
-        Matcher matcher = NS_URI_PATTERN.matcher(namespaceUri);
-        if (!matcher.find()) {
-            if (!namespaceUri.equals("http://schemas.android.com/apk/prv/res/android")) {
-                LOGGER.log(Level.WARNING, "unexpected ns uri \"" + namespaceUri + "\"");
-            }
-            return URLEncoder.encode(namespaceUri);
-        }
-        return matcher.group(1);
-    }
-
-    public ResName getReferenceResName() {
-        return ResName.qualifyResName(value.substring(1).replace("+", ""), contextPackageName, null);
-    }
-
-    @Override
-    public String toString() {
-        return "Attribute{" +
-                "name='" + resName + '\'' +
-                ", value='" + value + '\'' +
-                ", contextPackageName='" + contextPackageName + '\'' +
-                '}';
-    }
 
     public static Attribute find(List<Attribute> attributes, String fullyQualifiedName) {
         return find(attributes, new ResName(fullyQualifiedName));
@@ -88,8 +35,8 @@ public class Attribute {
 
     public static Attribute find(List<Attribute> attributes, int attrId, ResourceIndex resourceIndex) {
         for (Attribute attribute : attributes) {
-          Integer resourceId = resourceIndex.getResourceId(attribute.resName);
-          if (resourceId != null && resourceId == attrId) {
+            Integer resourceId = resourceIndex.getResourceId(attribute.resName);
+            if (resourceId != null && resourceId == attrId) {
                 return attribute;
             }
         }
@@ -136,12 +83,54 @@ public class Attribute {
         return possiblyQualifiedAttrName;
     }
 
-    public String qualifiedValue() {
-        if (isReference()) {
-            return ResName.qualifyResourceName(value.substring(1), contextPackageName, null);
-        } else {
-            return value;
+    public Attribute(@NotNull String fullyQualifiedName, @NotNull String value, @NotNull String contextPackageName) {
+        this(new ResName(fullyQualifiedName), value, contextPackageName);
+    }
+
+    public Attribute(@NotNull ResName resName, @NotNull String value, @NotNull String contextPackageName) {
+        if (!resName.type.equals("attr")) throw new IllegalStateException("\"" + resName.getFullyQualifiedName() + "\" unexpected");
+
+        this.resName = resName;
+        this.value = value;
+        this.contextPackageName = contextPackageName;
+    }
+
+    public Attribute(Node attr, XmlLoader.XmlContext xmlContext) {
+        this(extractPackageName(attr.getNamespaceURI(), xmlContext) + ":attr/" + attr.getLocalName(),
+                attr.getNodeValue(),
+                xmlContext.packageName);
+    }
+
+    private static String extractPackageName(String namespaceUri, XmlLoader.XmlContext xmlContext) {
+        if (namespaceUri == null) {
+            return "";
         }
+
+        if (RES_AUTO_NS_URI.equals(namespaceUri)) {
+            return xmlContext.packageName;
+        }
+
+        return extractPackageName(namespaceUri);
+    }
+
+    public static String extractPackageName(String namespaceUri) {
+        Matcher matcher = NS_URI_PATTERN.matcher(namespaceUri);
+        if (!matcher.find()) {
+            if (!namespaceUri.equals("http://schemas.android.com/apk/prv/res/android")) {
+                LOGGER.log(Level.WARNING, "unexpected ns uri \"" + namespaceUri + "\"");
+            }
+            return URLEncoder.encode(namespaceUri);
+        }
+        return matcher.group(1);
+    }
+
+    public String qualifiedValue() {
+        return isReference() ? "@" + getReference().getFullyQualifiedName() : value;
+    }
+
+    public ResName getReference() {
+        if (!isReference()) throw new RuntimeException("not a reference: " + this);
+        return ResName.qualifyResName(value.substring(1).replace("+", ""), contextPackageName, null);
     }
 
     public boolean isReference() {
@@ -150,5 +139,14 @@ public class Attribute {
 
     public boolean isNull() {
         return "@null".matches(value);
+    }
+
+    @Override
+    public String toString() {
+        return "Attribute{" +
+                "name='" + resName + '\'' +
+                ", value='" + value + '\'' +
+                ", contextPackageName='" + contextPackageName + '\'' +
+                '}';
     }
 }

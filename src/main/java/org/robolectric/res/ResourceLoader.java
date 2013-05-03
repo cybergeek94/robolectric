@@ -1,6 +1,7 @@
 package org.robolectric.res;
 
 import android.view.View;
+import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Document;
 
 import java.io.InputStream;
@@ -10,7 +11,7 @@ public interface ResourceLoader {
 
     String getNameForId(int id);
 
-    TypedResource getValue(ResName resName, String qualifiers);
+    TypedResource getValue(@NotNull ResName resName, String qualifiers);
 
     Plural getPlural(ResName resName, int quantity, String qualifiers);
 

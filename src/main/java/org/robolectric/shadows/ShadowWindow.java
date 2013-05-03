@@ -1,6 +1,6 @@
 package org.robolectric.shadows;
 
-import android.app.Activity;
+import android.view.ContextThemeWrapper;
 import android.view.Window;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
@@ -17,7 +17,7 @@ public class ShadowWindow {
     private int flags;
 //    private Context context;
 
-    public static Window create(Activity activity) {
+    public static Window create(ContextThemeWrapper activity) {
         return new RoboWindow(activity.getBaseContext());
     }
 
@@ -38,7 +38,7 @@ public class ShadowWindow {
     @Implementation
     public void setFlags(int flags, int mask) {
         this.flags = (this.flags & ~mask) | (flags & mask);
-        directlyOn(realWindow, Window.class).setFlags(flags, mask);
+        directlyOn(realWindow, Window.class, "setFlags", int.class, int.class).invoke(flags, mask);
     }
 
     public boolean getFlag(int flag) {

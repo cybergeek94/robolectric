@@ -1,11 +1,6 @@
 package org.robolectric.bytecode;
 
-import android.app.Activity;
-import org.robolectric.internal.Implements;
-import org.robolectric.internal.RealObject;
-import org.robolectric.shadows.ShadowWindow;
-import org.robolectric.util.Function;
-
+import android.view.ContextThemeWrapper;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -17,6 +12,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.robolectric.internal.Implements;
+import org.robolectric.internal.RealObject;
+import org.robolectric.shadows.ShadowWindow;
+import org.robolectric.util.Function;
 
 import static org.fest.reflect.core.Reflection.method;
 import static org.fest.reflect.core.Reflection.type;
@@ -205,13 +204,13 @@ public class ShadowWrangler implements ClassHandler {
                 @Override public Object call(Class<?> theClass, Object value, Object[] params) {
                     ClassLoader cl = theClass.getClassLoader();
                     Class<?> shadowWindowClass = type(ShadowWindow.class.getName()).withClassLoader(cl).load();
-                    Class<?> activityClass = type(Activity.class.getName()).withClassLoader(cl).load();
+                    Class<?> activityClass = type(ContextThemeWrapper.class.getName()).withClassLoader(cl).load();
 
-                    Object activity = params[0];
+                    Object context = params[0];
                     return method("create")
                             .withParameterTypes(activityClass)
                             .in(shadowWindowClass)
-                            .invoke(activity);
+                            .invoke(context);
                 }
             };
         }
