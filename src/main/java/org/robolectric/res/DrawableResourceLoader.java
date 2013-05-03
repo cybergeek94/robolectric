@@ -48,7 +48,7 @@ public class DrawableResourceLoader extends XmlLoader {
                         String[] tokens = name.split("\\.9\\.png$");
                         String shortName = tokens[0];
                         XmlContext fakeXmlContext = new XmlContext(resourcePath.getPackageName(), f);
-                        drawableNodes.put("drawable", shortName, new DrawableNode.ImageFile(true), fakeXmlContext);
+                        drawableNodes.put("drawable", shortName, new DrawableNode.ImageFile(f, true), fakeXmlContext);
                     }
                 }
             }

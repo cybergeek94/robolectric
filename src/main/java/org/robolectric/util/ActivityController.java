@@ -7,17 +7,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.IBinder;
+import org.robolectric.AndroidManifest;
 import org.robolectric.Robolectric;
 import org.robolectric.bytecode.RobolectricInternals;
+import org.robolectric.res.ActivityData;
+import org.robolectric.res.ResName;
 import org.robolectric.shadows.ShadowActivity;
 import org.robolectric.shadows.ShadowActivityThread;
+import org.robolectric.shadows.ShadowApplication;
 
 import static org.fest.reflect.core.Reflection.*;
 import static org.robolectric.Robolectric.shadowOf_;
 
-public class ActivityController<T> {
+public class ActivityController<T extends Activity> {
     private final T activity;
     private final ShadowActivity shadowActivity;
 
@@ -87,6 +92,22 @@ public class ActivityController<T> {
                 "title", null /* parent */, "id",
                 null /* lastNonConfigurationInstances */,
                 application.getResources().getConfiguration());
+
+        ShadowApplication shadowApplication = Robolectric.getShadowApplication();
+        AndroidManifest appManifest = shadowApplication.getAppManifest();
+        Class<?> activityClass = activity.getClass();
+        ActivityData activityData = appManifest.getActivityData(activityClass.getName());
+        String themeRef = activityData != null ? activityData.getThemeRef() : null;
+        if (themeRef == null) {
+            themeRef = appManifest.getThemeRef();
+        }
+
+        if (themeRef != null) {
+            ResName style = ResName.qualifyResName(themeRef.replace("@", ""), appManifest.getPackageName(), "style");
+            Integer themeRes = shadowApplication.getResourceLoader().getResourceIndex().getResourceId(style);
+            if (themeRes == null) throw new Resources.NotFoundException("no such theme " + style.getFullyQualifiedName());
+            activity.setTheme(themeRes);
+        }
 
         attached = true;
 

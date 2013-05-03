@@ -7,6 +7,7 @@ import android.widget.Button;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.R;
+import org.robolectric.Robolectric;
 import org.robolectric.TestRunners;
 
 import static org.fest.assertions.api.Assertions.assertThat;
@@ -18,20 +19,21 @@ public class ThemeTest {
         TestActivity activity = new TestActivity();
         activity.setTheme(R.style.Theme_Robolectric);
         shadowOf(activity).callOnCreate(null);
+        System.out.println("theme: " + shadowOf(activity).callGetThemeResId());
         Button theButton = (Button) activity.findViewById(R.id.button);
         assertThat(theButton.getBackground()).isEqualTo(new ColorDrawable(0xff00ff00));
     }
 
     @Test public void whenSetOnActivityInManifest_activityGetsThemeFromActivityInManifest() throws Exception {
-        TestActivity activity = new TestActivity();
-        shadowOf(activity).callOnCreate(null);
+        TestActivity activity = Robolectric.buildActivity(TestActivity.class).create().get();
+        System.out.println("theme: " + shadowOf(activity).callGetThemeResId());
         Button theButton = (Button) activity.findViewById(R.id.button);
         assertThat(theButton.getBackground()).isEqualTo(new ColorDrawable(0xff00ff00));
     }
 
     @Test public void whenNotSetOnActivityInManifest_activityGetsThemeFromApplicationInManifest() throws Exception {
-        TestActivity activity = new TestActivity();
-        shadowOf(activity).callOnCreate(null);
+        TestActivity activity = Robolectric.buildActivity(TestActivity.class).create().get();
+        System.out.println("theme: " + shadowOf(activity).callGetThemeResId());
         Button theButton = (Button) activity.findViewById(R.id.button);
         assertThat(theButton.getBackground()).isEqualTo(new ColorDrawable(0xffff0000));
     }

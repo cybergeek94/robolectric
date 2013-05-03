@@ -26,9 +26,9 @@ import org.robolectric.bytecode.ShadowWrangler;
 import org.robolectric.bytecode.ZipClassCache;
 import org.robolectric.internal.ParallelUniverse;
 import org.robolectric.internal.ParallelUniverseInterface;
+import org.robolectric.res.DocumentLoader;
 import org.robolectric.res.Fs;
 import org.robolectric.res.FsFile;
-import org.robolectric.res.MergedResourceIndex;
 import org.robolectric.res.OverlayResourceLoader;
 import org.robolectric.res.PackageResourceLoader;
 import org.robolectric.res.ResourceLoader;
@@ -346,7 +346,12 @@ public class RobolectricTestRunner extends BlockJUnit4ClassRunner {
             AndroidManifest appManifest;
             appManifest = envHolder.appManifestsByFile.get(manifestFile);
             if (appManifest == null) {
+
+                long startTime = System.currentTimeMillis();
                 appManifest = createAppManifest(manifestFile);
+                if (DocumentLoader.DEBUG_PERF)
+                    System.out.println(String.format("%4dms spent in %s", System.currentTimeMillis() - startTime, manifestFile));
+
                 envHolder.appManifestsByFile.put(manifestFile, appManifest);
             }
             return appManifest;

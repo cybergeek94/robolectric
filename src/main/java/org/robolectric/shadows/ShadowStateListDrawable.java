@@ -1,11 +1,16 @@
 package org.robolectric.shadows;
 
+import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.StateListDrawable;
+import android.util.AttributeSet;
 import android.util.StateSet;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +38,11 @@ public class ShadowStateListDrawable extends ShadowDrawable {
     @Implementation
     public void addState(int[] stateSet, Drawable drawable) {
         stateToDrawable.put(createStateList(stateSet), drawable);
+    }
+
+    @Implementation
+    public void inflate(Resources r, XmlPullParser parser, AttributeSet attrs) throws XmlPullParserException, IOException {
+        // todo
     }
 
     /**

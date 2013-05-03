@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.util.TypedValue;
 import org.robolectric.res.AttrData;
 import org.robolectric.res.Attribute;
+import org.robolectric.res.DrawableNode;
 import org.robolectric.res.ResName;
 import org.robolectric.res.ResType;
 import org.robolectric.res.ResourceLoader;
@@ -53,7 +54,7 @@ public class Converter<T> {
                     throw new Resources.NotFoundException("unknown resource " + resName);
                 }
 
-                // wtf. color references reference are all kinds of stupid.
+                // wtf. color and drawable references reference are all kinds of stupid.
                 TypedResource dereferencedRef = resourceLoader.getValue(resName, qualifiers);
                 if (dereferencedRef != null && dereferencedRef.getResType().equals(ResType.COLOR_STATE_LIST)) {
                     outValue.string = dereferencedRef.asString();
@@ -61,6 +62,15 @@ public class Converter<T> {
                 } else if (dereferencedRef != null && dereferencedRef.getResType().equals(ResType.COLOR)) {
                     outValue.data = Color.parseColor(dereferencedRef.asString());
                     outValue.type = TypedValue.TYPE_FIRST_COLOR_INT;
+                } else if (dereferencedRef == null && resName.type.equals("drawable")) {
+                    DrawableNode drawableNode = resourceLoader.getDrawableNode(resName, qualifiers);
+                    if (drawableNode == null) {
+                        System.out.println("can't find file for " + resName);
+                    } else {
+                        outValue.string = drawableNode.getFsFile().getPath();
+                        outValue.type = TypedValue.TYPE_STRING;
+                        outValue.resourceId = resourceId;
+                    }
                 } else {
                     outValue.string = resName.getFullyQualifiedName();
                     outValue.type = TypedValue.TYPE_REFERENCE;
@@ -107,7 +117,9 @@ public class Converter<T> {
             case DIMEN:
                 return new FromDimen();
             case INTEGER:
-                return new FromNumeric();
+                return new FromInt();
+            case FLOAT:
+                return new FromFloat();
             case CHAR_SEQUENCE_ARRAY:
             case INTEGER_ARRAY:
                 return new FromArray();
@@ -182,7 +194,7 @@ public class Converter<T> {
         }
     }
 
-    private static class FromNumeric extends Converter<String> {
+    private static class FromInt extends Converter<String> {
         @Override public void fillTypedValue(String data, TypedValue typedValue) {
             typedValue.type = TypedValue.TYPE_INT_HEX;
             typedValue.data = convertInt(data);
@@ -191,6 +203,12 @@ public class Converter<T> {
         @Override public int asInt(TypedResource typedResource) {
             String rawValue = typedResource.asString();
             return convertInt(rawValue);
+        }
+    }
+
+    private static class FromFloat extends Converter<String> {
+        @Override public void fillTypedValue(String data, TypedValue typedValue) {
+            ResourceHelper.parseFloatAttribute(null, data, typedValue, false);
         }
     }
 
