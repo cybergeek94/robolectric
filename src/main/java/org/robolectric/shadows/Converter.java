@@ -38,11 +38,11 @@ public class Converter<T> {
         String qualifiers = shadowOf(resources.getAssets()).getQualifiers();
         TypedResource attrTypeData = resourceLoader.getValue(attribute.resName, qualifiers);
         if (attrTypeData != null) {
-            convertAndFill(attribute.value, attribute.contextPackageName, resourceLoader, outValue, (AttrData) attrTypeData.getData());
+            convertAndFill(attribute.value, attribute.contextPackageName, resourceLoader, outValue, (AttrData) attrTypeData.getData(), qualifiers);
         }
     }
 
-    public static void convertAndFill(String value, String contextPackageName, ResourceLoader resourceLoader, TypedValue outValue, AttrData attrData) {
+    public static void convertAndFill(String value, String contextPackageName, ResourceLoader resourceLoader, TypedValue outValue, AttrData attrData, String qualifiers) {
         String format = attrData.getFormat();
         String[] types = format.split("\\|");
         for (String type : types) {
@@ -53,11 +53,14 @@ public class Converter<T> {
                     throw new Resources.NotFoundException("unknown resource " + resName);
                 }
 
-                // todo: this sucks, but Resources#getDrawable() wants a value in typedValue.string,
-                // todo:    which will only be passed through by Resources#getValueAt if type is TYPE_STRING
-                if (resName.type.equals("drawable")) {
-                    outValue.string = resName.getFullyQualifiedName();
+                // wtf. color references reference are all kinds of stupid.
+                TypedResource dereferencedRef = resourceLoader.getValue(resName, qualifiers);
+                if (dereferencedRef != null && dereferencedRef.getResType().equals(ResType.COLOR_STATE_LIST)) {
+                    outValue.string = dereferencedRef.asString();
                     outValue.type = TypedValue.TYPE_STRING;
+                } else if (dereferencedRef != null && dereferencedRef.getResType().equals(ResType.COLOR)) {
+                    outValue.data = Color.parseColor(dereferencedRef.asString());
+                    outValue.type = TypedValue.TYPE_FIRST_COLOR_INT;
                 } else {
                     outValue.string = resName.getFullyQualifiedName();
                     outValue.type = TypedValue.TYPE_REFERENCE;
@@ -87,11 +90,6 @@ public class Converter<T> {
               return;
             }
         }
-    }
-
-    public static Converter getConverters(AttrData attrData) {
-
-        throw new RuntimeException("no converter for " + attrData);
     }
 
     public static Converter getConverter(ResType resType) {

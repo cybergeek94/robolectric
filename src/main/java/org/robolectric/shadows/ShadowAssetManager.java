@@ -131,8 +131,7 @@ public final class ShadowAssetManager {
                 if (attrDataValue == null)
                     throw new Resources.NotFoundException("Couldn't find " + resName + " attr data");
                 AttrData attrData = (AttrData) attrDataValue.getData();
-                Converter.convertAndFill(attrValue, "fizixmizee", resourceLoader, outValue,
-                        attrData);
+                Converter.convertAndFill(attrValue, "fizixmizee", resourceLoader, outValue, attrData, getQualifiers());
                 return true;
             }
         }
@@ -311,7 +310,7 @@ public final class ShadowAssetManager {
         private StyleData getParent(StyleData currentStyle) {
             String parent = currentStyle.getParent();
             if (parent == null) return null;
-            TypedResource typedResource = resourceLoader.getValue(ResName.qualifyResName(parent, myResName), qualifiers);
+            TypedResource typedResource = resourceLoader.getValue(ResName.qualifyResName(parent.replace("@", ""), myResName), qualifiers);
             return typedResource == null ? null : (StyleData) typedResource.getData();
         }
     }

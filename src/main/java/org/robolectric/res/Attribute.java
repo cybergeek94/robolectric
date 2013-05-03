@@ -138,7 +138,7 @@ public class Attribute {
     }
 
     public boolean isNull() {
-        return "@null".matches(value);
+        return "@null".equals(value);
     }
 
     @Override

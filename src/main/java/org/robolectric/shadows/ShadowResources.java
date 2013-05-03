@@ -270,6 +270,15 @@ public class ShadowResources {
 
         @Implementation
         public TypedArray obtainStyledAttributes(AttributeSet set, int[] attrs, int defStyleAttr, int defStyleRes) {
+
+            /*
+             * When determining the final value of a particular attribute, there are four inputs that come into play:
+             *
+             * 1. Any attribute values in the given AttributeSet.
+             * 2. The style resource specified in the AttributeSet (named "style").
+             * 3. The default style specified by defStyleAttr and defStyleRes
+             * 4. The base values in this theme.
+             */
             Resources resources = getResources();
             ResourceLoader resourceLoader = shadowOf(resources).getResourceLoader();
             String qualifiers = shadowOf(resources).getQualifiers();
@@ -277,24 +286,24 @@ public class ShadowResources {
             if (set == null) {
                 set = new RoboAttributeSet(new ArrayList<Attribute>(), resources, null);
             }
-            Style result;
+            Style defStyle;
+
             // Load the style for the theme we represent. E.g. "@style/Theme.Robolectric"
             ResName themeStyleName = resourceLoader.getResourceIndex().getResName(styleResourceId);
 
             Style theme = ShadowAssetManager.resolveStyle(resourceLoader, themeStyleName, shadowOf(resources.getAssets()).getQualifiers());
 
             if (defStyleAttr == 0) {
-                result = null;
+                defStyle = null;
             } else {
                 // Load the theme attribute for the default style attributes. E.g., attr/buttonStyle
                 ResName defStyleName = resourceLoader.getResourceIndex().getResName(defStyleAttr);
 
                 // Load the style for the default style attribute. E.g. "@style/Widget.Robolectric.Button";
                 String defStyleNameValue = theme.getAttrValue(defStyleName);
-                ResName defStyleResName = new ResName(defStyleName.namespace, "style", defStyleName.name);
-                result = ShadowAssetManager.resolveStyle(resourceLoader, defStyleResName, shadowOf(resources.getAssets()).getQualifiers());
+                ResName defStyleResName = ResName.qualifyResName(defStyleNameValue.replace("@", ""), themeStyleName);
+                defStyle = ShadowAssetManager.resolveStyle(resourceLoader, defStyleResName, shadowOf(resources.getAssets()).getQualifiers());
             }
-            Style defStyle = result;
 
             List<Attribute> attributes = new ArrayList<Attribute>();
             for (int i = 0; i < attrs.length; i++) {
@@ -308,6 +317,13 @@ public class ShadowResources {
                     // else if attr in defStyle, use its value
                     if (defStyle != null) {
                         attrValue = defStyle.getAttrValue(attrName);
+                    }
+                }
+
+                if (attrValue == null) {
+                    // else if attr in theme, use its value
+                    if (theme != null) {
+                        attrValue = theme.getAttrValue(attrName);
                     }
                 }
 
