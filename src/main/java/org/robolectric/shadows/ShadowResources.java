@@ -290,6 +290,7 @@ public class ShadowResources {
 
             // Load the style for the theme we represent. E.g. "@style/Theme.Robolectric"
             ResName themeStyleName = resourceLoader.getResourceIndex().getResName(styleResourceId);
+            System.out.println("themeStyleName = " + themeStyleName);
 
             Style theme = ShadowAssetManager.resolveStyle(resourceLoader, themeStyleName, shadowOf(resources.getAssets()).getQualifiers());
 
@@ -313,10 +314,15 @@ public class ShadowResources {
                 if (attrName == null) continue;
 
                 String attrValue = set.getAttributeValue(attrName.namespace, attrName.name);
+                if (attrValue != null) System.out.println("Got " + attrName + " from attr: " + attrValue);
+
+                // todo: check for style attribute...
+
                 if (attrValue == null) {
                     // else if attr in defStyle, use its value
                     if (defStyle != null) {
                         attrValue = defStyle.getAttrValue(attrName);
+                        if (attrValue != null) System.out.println("Got " + attrName + " from defStyle: " + attrValue);
                     }
                 }
 
@@ -324,6 +330,7 @@ public class ShadowResources {
                     // else if attr in theme, use its value
                     if (theme != null) {
                         attrValue = theme.getAttrValue(attrName);
+                        if (attrValue != null) System.out.println("Got " + attrName + " from theme: " + attrValue);
                     }
                 }
 
