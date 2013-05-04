@@ -32,13 +32,20 @@ public class ThemeTest {
     }
 
     @Test public void whenNotSetOnActivityInManifest_activityGetsThemeFromApplicationInManifest() throws Exception {
-        TestActivity activity = Robolectric.buildActivity(TestActivity.class).create().get();
+        TestActivity activity = Robolectric.buildActivity(TestActivityWithAnotherTheme.class).create().get();
         System.out.println("theme: " + shadowOf(activity).callGetThemeResId());
         Button theButton = (Button) activity.findViewById(R.id.button);
         assertThat(theButton.getBackground()).isEqualTo(new ColorDrawable(0xffff0000));
     }
 
     public static class TestActivity extends Activity {
+        @Override protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            setContentView(R.layout.styles_button_layout);
+        }
+    }
+
+    public static class TestActivityWithAnotherTheme extends TestActivity {
         @Override protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             setContentView(R.layout.styles_button_layout);

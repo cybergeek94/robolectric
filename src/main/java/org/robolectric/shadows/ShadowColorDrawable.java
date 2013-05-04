@@ -32,6 +32,7 @@ public class ShadowColorDrawable extends ShadowDrawable {
 
     @Override @Implementation
     public String toString() {
-        return "ColorDrawable{color=" + realColorDrawable.getColor() + ", alpha=" + realColorDrawable.getAlpha() + '}';
+        return String.format("ColorDrawable{color=#%06x, alpha=0x%02x}",
+                realColorDrawable.getColor() & 0xffffff, realColorDrawable.getAlpha());
     }
 }

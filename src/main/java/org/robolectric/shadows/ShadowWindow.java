@@ -18,7 +18,7 @@ public class ShadowWindow {
 //    private Context context;
 
     public static Window create(ContextThemeWrapper activity) {
-        return new RoboWindow(activity.getBaseContext());
+        return new RoboWindow(activity);
     }
 
 //    public void __constructor__(android.content.Context context) {

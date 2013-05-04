@@ -5,9 +5,9 @@
 
     <!-- todo: get @Config(manifest=xxx) working -->
     <application android:theme="@style/Theme.Robolectric">
-        <activity android:name="org.robolectric.shadows.ThemeTest.TestActivity"/>
+        <activity android:name="org.robolectric.shadows.ThemeTest$TestActivity"/>
 
-        <activity android:name="org.robolectric.shadows.ThemeTest.TestActivityWithAnotherTheme"
+        <activity android:name="org.robolectric.shadows.ThemeTest$TestActivityWithAnotherTheme"
                   android:theme="@style/Theme.AnotherTheme"/>
     </application>
 </manifest>

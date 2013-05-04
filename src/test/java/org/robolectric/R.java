@@ -271,5 +271,6 @@ public final class R {
     public static final class style {
         public static final int FancyStyle = 0x10f00;
         public static final int Theme_Robolectric = 0x10f01;
+        public static final int Theme_AnotherTheme = 0x10f02;
     }
 }
