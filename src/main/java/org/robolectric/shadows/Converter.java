@@ -47,6 +47,12 @@ public class Converter<T> {
         String format = attrData.getFormat();
         String[] types = format.split("\\|");
         for (String type : types) {
+            if (value.startsWith("?") && "reference".equals(type)) {
+                ResName resName = ResName.qualifyResName(value.substring(1).replace("+", ""), contextPackageName, null);
+                // todo
+                System.out.println("TODO: Not handling " + value + " yet!");
+                return;
+            }
             if (value.startsWith("@") && "reference".equals(type)) {
                 ResName resName = ResName.qualifyResName(value.substring(1).replace("+", ""), contextPackageName, null);
                 Integer resourceId = resourceLoader.getResourceIndex().getResourceId(resName);

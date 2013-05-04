@@ -38,6 +38,10 @@ public class ThemeTest {
         assertThat(theButton.getBackground()).isEqualTo(new ColorDrawable(0xffff0000));
     }
 
+    @Test public void shouldResolveReferencesThatStartWithAQuestionMark() throws Exception {
+
+    }
+
     public static class TestActivity extends Activity {
         @Override protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
