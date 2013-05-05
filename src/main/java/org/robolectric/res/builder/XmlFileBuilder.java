@@ -3,6 +3,7 @@ package org.robolectric.res.builder;
 import android.content.res.Resources;
 import android.content.res.XmlResourceParser;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.xmlpull.v1.XmlPullParserException;
@@ -46,8 +47,8 @@ public class XmlFileBuilder {
     }
 
 
-    public XmlResourceParser getXml(Document document, Resources resources, String packageName) {
-        return new XmlResourceParserImpl(document, resources, packageName);
+    public XmlResourceParser getXml(Document document, String fileName, String packageName, Resources resources) {
+        return new XmlResourceParserImpl(document, fileName, packageName, resources);
     }
 
     /**
@@ -68,19 +69,22 @@ public class XmlFileBuilder {
             implements XmlResourceParser {
 
         private final Document document;
+        private final String fileName;
+        private final String packageName;
         private final Resources resources;
+
         private Node currentNode;
 
         private boolean mStarted = false;
         private boolean mDecNextDepth = false;
         private int mDepth = 0;
         private int mEventType = START_DOCUMENT;
-        private String packageName;
 
-        public XmlResourceParserImpl(Document document, Resources resources, String packageName) {
+        public XmlResourceParserImpl(Document document, String fileName, String packageName, Resources resources) {
             this.document = document;
-            this.resources = resources;
+            this.fileName = fileName;
             this.packageName = packageName;
+            this.resources = resources;
         }
 
         public void setFeature(String name, boolean state)
@@ -241,15 +245,27 @@ public class XmlFileBuilder {
             return map.item(index);
         }
 
-        public Node getAttribute(String namespace, String name) {
+        public String getAttribute(String namespace, String name) {
             if (currentNode == null) {
                 return null;
             }
+
+            Element element = (Element) currentNode;
+            if (element.hasAttributeNS(namespace, name)) {
+                return element.getAttributeNS(namespace, name);
+            }
+
+            // todo: remove this? no longer needed?
             NamedNodeMap map = currentNode.getAttributes();
-            // XXX(msama): getNamedItemNS does not work.
-            // 		This is an hack to make this implementation working.
+            // XXX(msama): in case getNamedItemNS does not work,
+            // 		this is an hack to make this implementation working.
             //		return map.getNamedItemNS(namespace, name);
-            return map.getNamedItem(name);
+            Node item = map.getNamedItem(name);
+            System.out.println("Found " + item + " for " + namespace + ":" + name + " among:");
+            for (int i = 0; i < map.getLength(); i++) {
+                System.out.println("* " + map.item(i));
+            }
+            return item == null ? null : item.getNodeValue();
         }
 
         public String getAttributeNamespace(int index) {
@@ -306,11 +322,7 @@ public class XmlFileBuilder {
         }
 
         public String getAttributeValue(String namespace, String name) {
-            Node attr = getAttribute(namespace, name);
-            if (attr == null) {
-                return null;
-            }
-            return attr.getNodeValue();
+            return getAttribute(namespace, name);
         }
 
         public int next() throws XmlPullParserException, IOException {
@@ -552,12 +564,12 @@ public class XmlFileBuilder {
 
         public int getAttributeListValue(String namespace, String attribute,
                                          String[] options, int defaultValue) {
-            Node attr = getAttribute(namespace, attribute);
+            String attr = getAttribute(namespace, attribute);
             if (attr == null) {
                 return 0;
             }
             List<String> optList = Arrays.asList(options);
-            int index = optList.indexOf(attr.getNodeValue());
+            int index = optList.indexOf(attr);
             if (index == -1) {
                 return defaultValue;
             }
@@ -566,11 +578,11 @@ public class XmlFileBuilder {
 
         public boolean getAttributeBooleanValue(String namespace, String attribute,
                                                 boolean defaultValue) {
-            Node attr = getAttribute(namespace, attribute);
+            String attr = getAttribute(namespace, attribute);
             if (attr == null) {
                 return defaultValue;
             }
-            return Boolean.parseBoolean(attr.getNodeValue());
+            return Boolean.parseBoolean(attr);
         }
 
         public int getAttributeResourceValue(String namespace, String attribute,
@@ -580,12 +592,12 @@ public class XmlFileBuilder {
 
         public int getAttributeIntValue(String namespace, String attribute,
                                         int defaultValue) {
-            Node attr = getAttribute(namespace, attribute);
+            String attr = getAttribute(namespace, attribute);
             if (attr == null) {
                 return defaultValue;
             }
             try {
-                return Integer.parseInt(attr.getNodeValue());
+                return Integer.parseInt(attr);
             } catch (NumberFormatException ex) {
                 return defaultValue;
             }
@@ -602,12 +614,12 @@ public class XmlFileBuilder {
 
         public float getAttributeFloatValue(String namespace, String attribute,
                                             float defaultValue) {
-            Node attr = getAttribute(namespace, attribute);
+            String attr = getAttribute(namespace, attribute);
             if (attr == null) {
                 return defaultValue;
             }
             try {
-                return Float.parseFloat(attr.getNodeValue());
+                return Float.parseFloat(attr);
             } catch (NumberFormatException ex) {
                 return defaultValue;
             }
@@ -674,19 +686,11 @@ public class XmlFileBuilder {
         }
 
         public String getIdAttribute() {
-            Node attr = getAttribute(null, "id");
-            if (attr == null) {
-                return null;
-            }
-            return attr.getNodeValue();
+            return getAttribute(null, "id");
         }
 
         public String getClassAttribute() {
-            Node attr = getAttribute(null, "class");
-            if (attr == null) {
-                return null;
-            }
-            return attr.getNodeValue();
+            return getAttribute(null, "class");
         }
 
         public int getIdAttributeResourceValue(int defaultValue) {
@@ -702,12 +706,12 @@ public class XmlFileBuilder {
         }
 
         public int getStyleAttribute() {
-            Node attr = getAttribute(null, "style");
+            String attr = getAttribute(null, "style");
             if (attr == null) {
                 return 0;
             }
             try {
-                return Integer.parseInt(attr.getNodeValue());
+                return Integer.parseInt(attr);
             } catch (NumberFormatException ex) {
                 return 0;
             }

@@ -56,8 +56,9 @@ public class XmlFileLoaderTest {
         new DocumentLoader(testResources()).load("xml", xmlFileLoader);
         xmlFileBuilder = new XmlFileBuilder();
 
-        Document document = resBundle.get(new ResName(TEST_PACKAGE, "xml", "preferences"), "");
-        parser = (XmlResourceParserImpl) xmlFileBuilder.getXml(document, null, "packageName");
+        ResName resName = new ResName(TEST_PACKAGE, "xml", "preferences");
+        Document document = resBundle.get(resName, "");
+        parser = (XmlResourceParserImpl) xmlFileBuilder.getXml(document, resName.getFullyQualifiedName(), "packageName", null);
     }
 
     @After
@@ -93,7 +94,7 @@ public class XmlFileLoaderTest {
             Document document = documentBuilder.parse(
                     new ByteArrayInputStream(xmlValue.getBytes()));
 
-            parser = new XmlResourceParserImpl(document, null, null);
+            parser = new XmlResourceParserImpl(document, "file", null, null);
             // Navigate to the root element
             parseUntilNext(XmlResourceParser.START_TAG);
         } catch (Exception parsingException) {
@@ -345,9 +346,7 @@ public class XmlFileLoaderTest {
     @Test
     public void testGetAttribute() throws XmlPullParserException, IOException {
         forgeAndOpenDocument("<foo xmlns:bar=\"bar\"/>");
-        assertThat(parser.getAttribute(
-                "http://www.w3.org/2000/xmlns/",
-                "xmlns:bar").getNodeValue()).isEqualTo("bar");
+        assertThat(parser.getAttribute("http://www.w3.org/2000/xmlns/", "xmlns:bar")).isEqualTo("bar");
     }
 
     @Test

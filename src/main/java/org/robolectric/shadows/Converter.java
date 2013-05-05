@@ -258,11 +258,12 @@ public class Converter<T> {
             return false;
         }
 
-        int intValue = Integer.parseInt(rawValue);
-        if (intValue == 0) {
-            return false;
+        try {
+            int intValue = Integer.parseInt(rawValue);
+            return intValue != 0;
+        } catch (NumberFormatException e) {
+            throw new RuntimeException(e);
         }
-        return true;
     }
 
     private static class EnumConverter extends EnumOrFlagConverter {

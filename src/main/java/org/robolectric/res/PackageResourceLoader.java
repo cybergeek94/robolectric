@@ -49,8 +49,7 @@ public class PackageResourceLoader extends XResourceLoader {
         drawableResourceLoader.findNinePatchResources(resourcePath);
         documentLoader.load("drawable", drawableResourceLoader);
         documentLoader.load("color", new ColorResourceLoader(data));
-        documentLoader.load("xml", new PreferenceLoader(preferenceData));
-        documentLoader.load("xml", new XmlFileLoader(xmlDocuments));
+        documentLoader.load("xml", new PreferenceLoader(preferenceData), new XmlFileLoader(xmlDocuments));
         new RawResourceLoader(resourcePath).loadTo(rawResources);
 
         loadOtherResources(resourcePath);

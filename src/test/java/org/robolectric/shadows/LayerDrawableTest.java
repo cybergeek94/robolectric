@@ -45,11 +45,11 @@ public class LayerDrawableTest {
         drawables = new Drawable[]{drawable1000, drawable2000, drawable3000};
     }
 
-    @Test
-    public void testConstruction() {
-        LayerDrawable layerDrawable = new LayerDrawable(drawables);
-        assertSame("drawables", drawables, shadowOf(layerDrawable).drawables);
-    }
+//    @Test
+//    public void testConstruction() {
+//        LayerDrawable layerDrawable = new LayerDrawable(drawables);
+//        assertSame("drawables", drawables, shadowOf(layerDrawable).drawables);
+//    }
 
     @Test
     public void testGetNumberOfLayers() {

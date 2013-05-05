@@ -18,6 +18,7 @@ import org.robolectric.internal.RealObject;
 import org.robolectric.res.Attribute;
 import org.robolectric.res.DrawableNode;
 import org.robolectric.res.Fs;
+import org.robolectric.res.FsFile;
 import org.robolectric.res.Plural;
 import org.robolectric.res.ResName;
 import org.robolectric.res.ResType;
@@ -76,6 +77,92 @@ public class ShadowResources {
         return system;
     }
 
+    private TypedArray attrsToTypedArray(AttributeSet set, int[] attrs, int defStyleAttr, int themeResourceId) {
+            /*
+             * When determining the final value of a particular attribute, there are four inputs that come into play:
+             *
+             * 1. Any attribute values in the given AttributeSet.
+             * 2. The style resource specified in the AttributeSet (named "style").
+             * 3. The default style specified by defStyleAttr and defStyleRes
+             * 4. The base values in this theme.
+             */
+        ResourceLoader resourceLoader = getResourceLoader();
+        ShadowAssetManager shadowAssetManager = shadowOf(realResources.getAssets());
+        String qualifiers = shadowAssetManager.getQualifiers();
+
+        if (set == null) {
+            set = new RoboAttributeSet(new ArrayList<Attribute>(), realResources, null);
+        }
+        Style defStyle = null;
+        Style theme = null;
+
+        if (defStyleAttr == 0) {
+            defStyle = null;
+        } else if (themeResourceId != -1) {
+            // Load the style for the theme we represent. E.g. "@style/Theme.Robolectric"
+            ResName themeStyleName = tryResName(themeResourceId);
+            System.out.println("themeStyleName = " + themeStyleName);
+
+            theme = ShadowAssetManager.resolveStyle(resourceLoader, themeStyleName, shadowAssetManager.getQualifiers());
+
+            // Load the theme attribute for the default style attributes. E.g., attr/buttonStyle
+            ResName defStyleName = tryResName(defStyleAttr);
+
+            // Load the style for the default style attribute. E.g. "@style/Widget.Robolectric.Button";
+            String defStyleNameValue = theme.getAttrValue(defStyleName);
+            if (defStyleNameValue.startsWith("?")) {
+                // todo
+                System.out.println("TODO: Not handling " + defStyleNameValue + " yet in ShadowResouces!");
+            }
+            ResName defStyleResName = ResName.qualifyResName(defStyleNameValue.replace("@", ""), themeStyleName);
+            defStyle = ShadowAssetManager.resolveStyle(resourceLoader, defStyleResName, shadowAssetManager.getQualifiers());
+        }
+
+        List<Attribute> attributes = new ArrayList<Attribute>();
+        for (int attr : attrs) {
+            ResName attrName = tryResName(attr); // todo probably getResName instead here?
+//                System.out.println("index " + i + " has " + attrName);
+            if (attrName == null) continue;
+
+            String attrValue = set.getAttributeValue(attrName.getNamespaceUri(), attrName.name);
+            if (attrValue != null) System.out.println("Got " + attrName + " from attr: " + attrValue);
+
+            // todo: check for style attribute...
+
+            // else if attr in defStyle, use its value
+            if (attrValue == null && defStyle != null) {
+                attrValue = defStyle.getAttrValue(attrName);
+                if (attrValue != null) System.out.println("Got " + attrName + " from defStyle: " + attrValue);
+            }
+
+            // else if attr in theme, use its value
+            if (attrValue == null && theme != null) {
+                attrValue = theme.getAttrValue(attrName);
+                if (attrValue != null) System.out.println("Got " + attrName + " from theme: " + attrValue);
+            }
+
+            if (attrValue != null) {
+                Attribute.put(attributes, new Attribute(attrName, attrValue, "fixme!!!"));
+            }
+
+            // if attr in attribute set, use its value
+            // TODO look for attrvalue in attriburte set
+
+            // else if attr in defStyle, use its value
+            //                if (defStyle != null) {
+            //                    attrValue = defStyle.getAttrValue(attrName);
+            //                }
+
+        }
+
+        return ShadowTypedArray.create(realResources, attributes, attrs);
+    }
+
+    @Implementation
+    public TypedArray obtainAttributes(AttributeSet set, int[] attrs) {
+        return attrsToTypedArray(set, attrs, -1, -1);
+    }
+
     @Implementation
     public void updateConfiguration(Configuration config, DisplayMetrics metrics) {
         shadowOf(realResources.getAssets()).setQualifiers(shadowOf(config).getQualifiers());
@@ -91,7 +178,9 @@ public class ShadowResources {
     public int getIdentifier(String name, String defType, String defPackage) {
         ResourceIndex resourceIndex = resourceLoader.getResourceIndex();
         ResName resName = ResName.qualifyResName(name, defPackage, defType);
-        return resourceIndex.getResourceId(resName);
+        Integer resourceId = resourceIndex.getResourceId(resName);
+        if (resourceId == null) return 0;
+        return resourceId;
     }
 
     @Implementation
@@ -126,13 +215,17 @@ public class ShadowResources {
         return resName;
     }
 
+    private ResName tryResName(int id) {
+        return resourceLoader.getResourceIndex().getResName(id);
+    }
+
     private String getQualifiers() {
         return shadowOf(realResources.getConfiguration()).getQualifiers();
     }
 
 //    @Implementation
 //    public ColorStateList getColorStateList(int id) {
-//        String colorValue = resourceLoader.getColorValue(getResName(id), getQualifiers());
+//        String colorValue = resourceLoader.getColorValue(tryResName(id), getQualifiers());
 //        if (colorValue != null) {
 //            return ColorStateList.valueOf(Color.parseColor(colorValue));
 //        } else {
@@ -218,16 +311,17 @@ public class ShadowResources {
         if (document == null) {
             throw new Resources.NotFoundException();
         }
-        return new XmlFileBuilder().getXml(document, realResources, resName.namespace);
+        return new XmlFileBuilder().getXml(document, resName.getFullyQualifiedName(), resName.namespace, realResources);
     }
 
     @HiddenApi @Implementation
     public XmlResourceParser loadXmlResourceParser(String file, int id, int assetCookie, String type) throws Resources.NotFoundException {
-        Document document = new XmlFileLoader(null).parse(Fs.fileFromPath(file));
+        FsFile fsFile = Fs.fileFromPath(file);
+        Document document = new XmlFileLoader(null).parse(fsFile);
         if (document == null) {
             throw new Resources.NotFoundException();
         }
-        return new XmlFileBuilder().getXml(document, realResources, "todo fixme!!!");
+        return new XmlFileBuilder().getXml(document, fsFile.getPath(), "todo fixme!!!", realResources);
     }
 
     public ResourceLoader getResourceLoader() {
@@ -270,85 +364,7 @@ public class ShadowResources {
 
         @Implementation
         public TypedArray obtainStyledAttributes(AttributeSet set, int[] attrs, int defStyleAttr, int defStyleRes) {
-
-            /*
-             * When determining the final value of a particular attribute, there are four inputs that come into play:
-             *
-             * 1. Any attribute values in the given AttributeSet.
-             * 2. The style resource specified in the AttributeSet (named "style").
-             * 3. The default style specified by defStyleAttr and defStyleRes
-             * 4. The base values in this theme.
-             */
-            Resources resources = getResources();
-            ResourceLoader resourceLoader = shadowOf(resources).getResourceLoader();
-            String qualifiers = shadowOf(resources).getQualifiers();
-
-            if (set == null) {
-                set = new RoboAttributeSet(new ArrayList<Attribute>(), resources, null);
-            }
-            Style defStyle;
-
-            // Load the style for the theme we represent. E.g. "@style/Theme.Robolectric"
-            ResName themeStyleName = resourceLoader.getResourceIndex().getResName(styleResourceId);
-            System.out.println("themeStyleName = " + themeStyleName);
-
-            Style theme = ShadowAssetManager.resolveStyle(resourceLoader, themeStyleName, shadowOf(resources.getAssets()).getQualifiers());
-
-            if (defStyleAttr == 0) {
-                defStyle = null;
-            } else {
-                // Load the theme attribute for the default style attributes. E.g., attr/buttonStyle
-                ResName defStyleName = resourceLoader.getResourceIndex().getResName(defStyleAttr);
-
-                // Load the style for the default style attribute. E.g. "@style/Widget.Robolectric.Button";
-                String defStyleNameValue = theme.getAttrValue(defStyleName);
-                ResName defStyleResName = ResName.qualifyResName(defStyleNameValue.replace("@", ""), themeStyleName);
-                defStyle = ShadowAssetManager.resolveStyle(resourceLoader, defStyleResName, shadowOf(resources.getAssets()).getQualifiers());
-            }
-
-            List<Attribute> attributes = new ArrayList<Attribute>();
-            for (int i = 0; i < attrs.length; i++) {
-                int attr = attrs[i];
-                ResName attrName = resourceLoader.getResourceIndex().getResName(attr);
-//                System.out.println("index " + i + " has " + attrName);
-                if (attrName == null) continue;
-
-                String attrValue = set.getAttributeValue(attrName.namespace, attrName.name);
-                if (attrValue != null) System.out.println("Got " + attrName + " from attr: " + attrValue);
-
-                // todo: check for style attribute...
-
-                if (attrValue == null) {
-                    // else if attr in defStyle, use its value
-                    if (defStyle != null) {
-                        attrValue = defStyle.getAttrValue(attrName);
-                        if (attrValue != null) System.out.println("Got " + attrName + " from defStyle: " + attrValue);
-                    }
-                }
-
-                if (attrValue == null) {
-                    // else if attr in theme, use its value
-                    if (theme != null) {
-                        attrValue = theme.getAttrValue(attrName);
-                        if (attrValue != null) System.out.println("Got " + attrName + " from theme: " + attrValue);
-                    }
-                }
-
-                if (attrValue != null) {
-                    Attribute.put(attributes, new Attribute(attrName, attrValue, "fixme!!!"));
-                }
-
-                // if attr in attribute set, use its value
-                // TODO look for attrvalue in attriburte set
-
-                // else if attr in defStyle, use its value
-                //                if (defStyle != null) {
-                //                    attrValue = defStyle.getAttrValue(attrName);
-                //                }
-
-            }
-
-            return ShadowTypedArray.create(resources, attributes, attrs);
+            return shadowOf(getResources()).attrsToTypedArray(set, attrs, defStyleAttr, this.styleResourceId);
         }
 
         Resources getResources() {

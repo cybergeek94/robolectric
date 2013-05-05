@@ -55,8 +55,7 @@ public final class ShadowAssetManager {
 
     @HiddenApi @Implementation
     public CharSequence getResourceText(int ident) {
-        ResName resName = resourceLoader.getResourceIndex().getResName(ident);
-        TypedResource value = getAndResolve(resName, getQualifiers(), true);
+        TypedResource value = getAndResolve(ident, getQualifiers(), true);
         if (value == null) return null;
         return (CharSequence) value.getData();
     }
@@ -79,8 +78,7 @@ public final class ShadowAssetManager {
 
     @HiddenApi @Implementation
     public boolean getResourceValue(int ident, int density, TypedValue outValue, boolean resolveRefs) {
-        ResName resName = resourceLoader.getResourceIndex().getResName(ident);
-        TypedResource value = getAndResolve(resName, getQualifiers(), resolveRefs);
+        TypedResource value = getAndResolve(ident, getQualifiers(), resolveRefs);
         if (value == null) return false;
 
         getConverter(value).fillTypedValue(value.getData(), outValue);
@@ -94,6 +92,7 @@ public final class ShadowAssetManager {
     @HiddenApi @Implementation
     public CharSequence[] getResourceTextArray(final int id) {
         ResName resName = resourceLoader.getResourceIndex().getResName(id);
+        if (resName == null) throw new Resources.NotFoundException("unknown resource " + id);
         TypedResource value = getAndResolve(resName, getQualifiers(), true);
         if (value == null) return null;
         TypedResource[] items = getConverter(value).getItems(value);
@@ -193,6 +192,7 @@ public final class ShadowAssetManager {
     @HiddenApi @Implementation
     public int[] getArrayIntResource(int arrayRes) {
         ResName resName = resourceLoader.getResourceIndex().getResName(arrayRes);
+        if (resName == null) throw new Resources.NotFoundException("unknown resource " + arrayRes);
         TypedResource value = getAndResolve(resName, getQualifiers(), true);
         if (value == null) return null;
         TypedResource[] items = getConverter(value).getItems(value);
@@ -234,16 +234,21 @@ public final class ShadowAssetManager {
         return themesById.get(internalThemeId);
     }
 
-    static Style resolveStyle(ResourceLoader resourceLoader, ResName themeStyleName, String qualifiers) {
+    static Style resolveStyle(ResourceLoader resourceLoader, @NotNull ResName themeStyleName, String qualifiers) {
         TypedResource themeStyleResource = resourceLoader.getValue(themeStyleName, qualifiers);
         if (themeStyleResource == null) return null;
         StyleData themeStyleData = (StyleData) themeStyleResource.getData();
         return new StyleResolver(resourceLoader, themeStyleData, themeStyleName, qualifiers);
     }
 
+    TypedResource getAndResolve(int resId, String qualifiers, boolean resolveRefs) {
+        ResName resName = resourceLoader.getResourceIndex().getResName(resId);
+        if (resName == null) throw new Resources.NotFoundException("unknown resource " + resId);
+        return getAndResolve(resName, qualifiers, resolveRefs);
+    }
+
     // todo: this shouldn't always resolve
     TypedResource getAndResolve(@NotNull ResName resName, String qualifiers, boolean resolveRefs) {
-        if (resName == null) return null;
         TypedResource value = resourceLoader.getValue(resName, qualifiers);
         return resolve(value, qualifiers, resName);
     }

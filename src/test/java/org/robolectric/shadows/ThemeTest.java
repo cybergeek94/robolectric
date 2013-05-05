@@ -39,7 +39,7 @@ public class ThemeTest {
     }
 
     @Test public void shouldResolveReferencesThatStartWithAQuestionMark() throws Exception {
-
+        // todo
     }
 
     public static class TestActivity extends Activity {

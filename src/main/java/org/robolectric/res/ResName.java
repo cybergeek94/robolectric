@@ -109,6 +109,10 @@ public class ResName {
         return namespace + ":" + type + "/" + name;
     }
 
+    public String getNamespaceUri() {
+        return "http://schemas.android.com/apk/res/" + namespace;
+    }
+
     public ResName withPackageName(String packageName) {
         if (packageName.equals(namespace)) return this;
         return new ResName(packageName, type, name);
