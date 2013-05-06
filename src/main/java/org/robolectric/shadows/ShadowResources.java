@@ -61,7 +61,6 @@ public class ShadowResources {
     private Display display;
     @RealObject Resources realResources;
     private ResourceLoader resourceLoader;
-    private ResourceIndex resourceIndex;
 
     public static void reset() {
         for (Field field : Resources.class.getDeclaredFields()) {
@@ -131,13 +130,17 @@ public class ShadowResources {
             ResName defStyleName = tryResName(defStyleAttr);
 
             // Load the style for the default style attribute. E.g. "@style/Widget.Robolectric.Button";
-            String defStyleNameValue = theme.getAttrValue(defStyleName);
-            if (defStyleNameValue.startsWith("?")) {
+            Attribute defStyleAttribute = theme.getAttrValue(defStyleName);
+            while (defStyleAttribute.isStyleReference()) {
+                defStyleAttribute = theme.getAttrValue(defStyleAttribute.getStyleReference());
                 // todo
-                System.out.println("TODO: Not handling " + defStyleNameValue + " yet in ShadowResouces!");
+                System.out.println("TODO: Not handling " + defStyleAttribute + " yet in ShadowResouces!");
             }
-            ResName defStyleResName = ResName.qualifyResName(defStyleNameValue.replace("@", ""), themeStyleName);
-            defStyle = ShadowAssetManager.resolveStyle(resourceLoader, defStyleResName, shadowAssetManager.getQualifiers());
+
+            if (defStyleAttribute.isResourceReference()) {
+                ResName defStyleResName = defStyleAttribute.getResourceReference();
+                defStyle = ShadowAssetManager.resolveStyle(resourceLoader, defStyleResName, shadowAssetManager.getQualifiers());
+            }
         }
 
         List<Attribute> attributes = new ArrayList<Attribute>();
@@ -146,38 +149,60 @@ public class ShadowResources {
 //                System.out.println("index " + i + " has " + attrName);
             if (attrName == null) continue;
 
-            String attrValue = set.getAttributeValue(attrName.getNamespaceUri(), attrName.name);
-            if (attrValue != null) System.out.println("Got " + attrName + " from attr: " + attrValue);
-
-            // todo: check for style attribute...
-
-            // else if attr in defStyle, use its value
-            if (attrValue == null && defStyle != null) {
-                attrValue = defStyle.getAttrValue(attrName);
-                if (attrValue != null) System.out.println("Got " + attrName + " from defStyle: " + attrValue);
+            Attribute attribute = findAttributeValue(attrName, set, defStyle, theme);
+            while (attribute != null && attribute.isStyleReference()) {
+                ResName otherAttrName = attribute.getStyleReference();
+                if (theme == null) throw new RuntimeException("no theme, but trying to look up " + otherAttrName);
+                attribute = theme.getAttrValue(otherAttrName);
+                if (attribute != null) {
+                    attribute = new Attribute(attrName, attribute.value, attribute.contextPackageName);
+                }
             }
 
-            // else if attr in theme, use its value
-            if (attrValue == null && theme != null) {
-                attrValue = theme.getAttrValue(attrName);
-                if (attrValue != null) System.out.println("Got " + attrName + " from theme: " + attrValue);
+            if (attribute != null) {
+                Attribute.put(attributes, attribute);
             }
-
-            if (attrValue != null) {
-                Attribute.put(attributes, new Attribute(attrName, attrValue, "fixme!!!"));
-            }
-
-            // if attr in attribute set, use its value
-            // TODO look for attrvalue in attriburte set
-
-            // else if attr in defStyle, use its value
-            //                if (defStyle != null) {
-            //                    attrValue = defStyle.getAttrValue(attrName);
-            //                }
-
         }
 
         return ShadowTypedArray.create(realResources, attributes, attrs);
+    }
+
+    private Attribute findAttributeValue(ResName attrName, AttributeSet attributeSet, Style defStyle, Style theme) {
+        String attrValue = attributeSet.getAttributeValue(attrName.getNamespaceUri(), attrName.name);
+        if (attrValue != null) {
+            System.out.println("Got " + attrName + " from attr: " + attrValue);
+            return new Attribute(attrName, attrValue, "fixme!!!");
+        }
+
+        // todo: check for style attribute...
+
+        // else if attr in defStyle, use its value
+        if (defStyle != null) {
+            Attribute attribute = defStyle.getAttrValue(attrName);
+            if (attribute != null) {
+                System.out.println("Got " + attrName + " from defStyle: " + attribute);
+                return attribute;
+            }
+        }
+
+        // else if attr in theme, use its value
+        if (theme != null) {
+            Attribute attribute = theme.getAttrValue(attrName);
+            if (attribute != null) {
+                System.out.println("Got " + attrName + " from theme: " + attrValue);
+                return attribute;
+            }
+        }
+
+        return null;
+
+        // if attr in attribute set, use its value
+        // TODO look for attrvalue in attriburte set
+
+        // else if attr in defStyle, use its value
+        //                if (defStyle != null) {
+        //                    attrValue = defStyle.getAttrValue(attrName);
+        //                }
     }
 
     @Implementation
@@ -341,9 +366,10 @@ public class ShadowResources {
         FsFile fsFile = Fs.fileFromPath(file);
         Document document = new XmlFileLoader(null).parse(fsFile);
         if (document == null) {
-            throw new Resources.NotFoundException();
+            throw new Resources.NotFoundException(notFound(id));
         }
-        return new XmlFileBuilder().getXml(document, fsFile.getPath(), "todo fixme!!!", realResources);
+        String packageName = getResName(id).namespace;
+        return new XmlFileBuilder().getXml(document, fsFile.getPath(), packageName, realResources);
     }
 
     public ResourceLoader getResourceLoader() {

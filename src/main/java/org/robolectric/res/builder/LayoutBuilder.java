@@ -36,7 +36,7 @@ public class LayoutBuilder {
         if (viewNode.isInclude()) {
             List<Attribute> viewNodeAttributes = viewNode.getAttributes();
             Attribute layoutAttribute = Attribute.find(viewNodeAttributes, ATTR_LAYOUT);
-            return inflateView(context, layoutAttribute.getReference(), viewNodeAttributes, parent, qualifiers);
+            return inflateView(context, layoutAttribute.getResourceReference(), viewNodeAttributes, parent, qualifiers);
         } else {
             View view = create(viewNode, context, parent);
 

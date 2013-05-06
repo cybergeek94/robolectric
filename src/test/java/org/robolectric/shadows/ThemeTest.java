@@ -39,7 +39,11 @@ public class ThemeTest {
     }
 
     @Test public void shouldResolveReferencesThatStartWithAQuestionMark() throws Exception {
-        // todo
+        TestActivity activity = Robolectric.buildActivity(TestActivityWithAnotherTheme.class).create().get();
+        System.out.println("theme: " + shadowOf(activity).callGetThemeResId());
+        Button theButton = (Button) activity.findViewById(R.id.button);
+        assertThat(theButton.getMinWidth()).isEqualTo(42); // via AnotherTheme.Button -> logoWidth and logoHeight
+        assertThat(theButton.getMinHeight()).isEqualTo(42);
     }
 
     public static class TestActivity extends Activity {

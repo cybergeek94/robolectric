@@ -221,13 +221,13 @@ public class ShadowDialog {
 //        return LayoutInflater.from(realDialog.getContext());
 //    }
 
-    public int getLayoutId() {
-        return layoutId;
-    }
-
-    public int getThemeId() {
-        return themeId;
-    }
+//    public int getLayoutId() {
+//        return layoutId;
+//    }
+//
+//    public int getThemeId() {
+//        return themeId;
+//    }
 
     public boolean hasBeenDismissed() {
         return hasBeenDismissed;

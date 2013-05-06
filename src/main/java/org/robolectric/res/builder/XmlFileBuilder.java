@@ -2,6 +2,8 @@ package org.robolectric.res.builder;
 
 import android.content.res.Resources;
 import android.content.res.XmlResourceParser;
+import org.robolectric.res.Attribute;
+import org.robolectric.res.ResName;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -303,7 +305,12 @@ public class XmlFileBuilder {
         }
 
         public String getAttributeValue(int index) {
-            return getAttributeAt(index).getNodeValue();
+            return qualify(getAttributeAt(index).getNodeValue());
+        }
+
+        private String qualify(String value) {
+            if (value == null) return null;
+            return new Attribute(new ResName("_robolectric_", "attr", "_fake_"), value, packageName).qualifiedValue();
         }
 
         public String getAttributeType(int index) {
@@ -322,7 +329,7 @@ public class XmlFileBuilder {
         }
 
         public String getAttributeValue(String namespace, String name) {
-            return getAttribute(namespace, name);
+            return qualify(getAttribute(namespace, name));
         }
 
         public int next() throws XmlPullParserException, IOException {

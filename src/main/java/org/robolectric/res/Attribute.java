@@ -125,16 +125,27 @@ public class Attribute {
     }
 
     public String qualifiedValue() {
-        return isReference() ? "@" + getReference().getFullyQualifiedName() : value;
+        if (isResourceReference()) return "@" + getResourceReference().getFullyQualifiedName();
+        if (isStyleReference()) return "?" + getStyleReference().getFullyQualifiedName();
+        else return value;
     }
 
-    public ResName getReference() {
-        if (!isReference()) throw new RuntimeException("not a reference: " + this);
-        return ResName.qualifyResName(value.substring(1).replace("+", ""), contextPackageName, null);
-    }
-
-    public boolean isReference() {
+    public boolean isResourceReference() {
         return value.startsWith("@");
+    }
+
+    public ResName getResourceReference() {
+        if (!isResourceReference()) throw new RuntimeException("not a resource reference: " + this);
+        return ResName.qualifyResName(value.substring(1).replace("+", ""), contextPackageName, "attr");
+    }
+
+    public boolean isStyleReference() {
+        return value.startsWith("?");
+    }
+
+    public ResName getStyleReference() {
+        if (!isStyleReference()) throw new RuntimeException("not a style reference: " + this);
+        return ResName.qualifyResName(value.substring(1), contextPackageName, "attr");
     }
 
     public boolean isNull() {

@@ -207,6 +207,7 @@ public final class R {
         public static final int aspectRatio = 0x10905;
         public static final int aspectRatioEnabled = 0x10906;
         public static final int items = 0x10907;
+        public static final int logoHeight = 0x10908;
     }
 
     public static final class menu {

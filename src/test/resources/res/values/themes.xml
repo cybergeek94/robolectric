@@ -6,6 +6,9 @@
 
     <style name="Theme.AnotherTheme" parent="@style/Theme.Robolectric">
         <item name="android:buttonStyle">@style/Widget.AnotherTheme.Button</item>
+        <item name="logoWidth">?attr/averageSheepWidth</item>
+        <item name="logoHeight">?android:attr/listItemPreferredHeight</item>
+        <item name="averageSheepWidth">42px</item>
     </style>
 
 
@@ -16,5 +19,7 @@
 
     <style name="Widget.AnotherTheme.Button" parent="@android:style/Widget.Button">
         <item name="android:background">#ffff0000</item>
+        <item name="android:minWidth">?attr/logoWidth</item>
+        <item name="android:minWeight">?attr/logoHeight</item>
     </style>
 </resources>

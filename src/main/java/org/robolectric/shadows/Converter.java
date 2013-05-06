@@ -46,44 +46,49 @@ public class Converter<T> {
     public static void convertAndFill(String value, String contextPackageName, ResourceLoader resourceLoader, TypedValue outValue, AttrData attrData, String qualifiers) {
         String format = attrData.getFormat();
         String[] types = format.split("\\|");
-        for (String type : types) {
-            if (value.startsWith("?") && "reference".equals(type)) {
-                ResName resName = ResName.qualifyResName(value.substring(1).replace("+", ""), contextPackageName, null);
-                // todo
-                System.out.println("TODO: Not handling " + value + " yet!");
-                return;
-            }
-            if (value.startsWith("@") && "reference".equals(type)) {
-                ResName resName = ResName.qualifyResName(value.substring(1).replace("+", ""), contextPackageName, null);
-                Integer resourceId = resourceLoader.getResourceIndex().getResourceId(resName);
-                if (resourceId == null) {
-                    throw new Resources.NotFoundException("unknown resource " + resName);
-                }
 
-                // wtf. color and drawable references reference are all kinds of stupid.
-                TypedResource dereferencedRef = resourceLoader.getValue(resName, qualifiers);
-                if (dereferencedRef != null && dereferencedRef.getResType().equals(ResType.COLOR_STATE_LIST)) {
-                    outValue.string = dereferencedRef.asString();
-                    outValue.type = TypedValue.TYPE_STRING;
-                } else if (dereferencedRef != null && dereferencedRef.getResType().equals(ResType.COLOR)) {
-                    outValue.data = Color.parseColor(dereferencedRef.asString());
-                    outValue.type = TypedValue.TYPE_FIRST_COLOR_INT;
-                } else if (dereferencedRef == null && resName.type.equals("drawable")) {
-                    DrawableNode drawableNode = resourceLoader.getDrawableNode(resName, qualifiers);
-                    if (drawableNode == null) {
-                        System.out.println("can't find file for " + resName);
-                    } else {
-                        outValue.string = drawableNode.getFsFile().getPath();
-                        outValue.type = TypedValue.TYPE_STRING;
-                        outValue.resourceId = resourceId;
-                    }
-                } else {
-                    outValue.string = resName.getFullyQualifiedName();
-                    outValue.type = TypedValue.TYPE_REFERENCE;
-                    outValue.resourceId = resourceId;
-                }
-                return;
+        // dereference resource and style references...
+        if (value.startsWith("?")) {
+            ResName resName = ResName.qualifyResName(value.substring(1).replace("+", ""), contextPackageName, null);
+            // todo
+            System.out.println("TODO: Not handling " + value + " yet!");
+            return;
+        }
+        if (value.startsWith("@")) {
+            ResName resName = ResName.qualifyResName(value.substring(1).replace("+", ""), contextPackageName, null);
+            Integer resourceId = resourceLoader.getResourceIndex().getResourceId(resName);
+            if (resourceId == null) {
+                throw new Resources.NotFoundException("unknown resource " + resName);
             }
+            outValue.resourceId = resourceId;
+
+          // wtf. color and drawable references reference are all kinds of stupid.
+            TypedResource dereferencedRef = resourceLoader.getValue(resName, qualifiers);
+            if (dereferencedRef != null && dereferencedRef.getResType().equals(ResType.COLOR_STATE_LIST)) {
+                outValue.string = dereferencedRef.asString();
+                outValue.type = TypedValue.TYPE_STRING;
+            } else if (dereferencedRef != null && dereferencedRef.getResType().equals(ResType.COLOR)) {
+                outValue.data = Color.parseColor(dereferencedRef.asString());
+                outValue.type = TypedValue.TYPE_FIRST_COLOR_INT;
+            } else if (dereferencedRef == null && resName.type.equals("drawable")) {
+                DrawableNode drawableNode = resourceLoader.getDrawableNode(resName, qualifiers);
+                if (drawableNode == null) {
+                    System.out.println("can't find file for " + resName);
+                } else {
+                    outValue.string = drawableNode.getFsFile().getPath();
+                    outValue.type = TypedValue.TYPE_STRING;
+                }
+            } else if (dereferencedRef != null && dereferencedRef.getResType().equals(ResType.DIMEN)) {
+                new FromDimen().fillTypedValue(dereferencedRef.asString(), outValue);
+            } else {
+                outValue.string = resName.getFullyQualifiedName();
+                outValue.type = TypedValue.TYPE_REFERENCE;
+            }
+            return;
+        }
+
+        for (String type : types) {
+            if ("reference".equals(type)) continue; // already handled above
 
             Converter converter = ATTR_TYPE_MAP.containsKey(type)
                     ? getConverter(ATTR_TYPE_MAP.get(type))
@@ -98,12 +103,12 @@ public class Converter<T> {
             }
 
             if (converter != null) {
-              try {
-                  converter.fillTypedValue(value, outValue);
-              } catch (Exception e) {
-                throw new RuntimeException("error converting " + value + " using " + converter.getClass().getSimpleName(), e);
-              }
-              return;
+                try {
+                    converter.fillTypedValue(value, outValue);
+                } catch (Exception e) {
+                    throw new RuntimeException("error converting " + value + " using " + converter.getClass().getSimpleName(), e);
+                }
+                return;
             }
         }
     }
@@ -172,7 +177,7 @@ public class Converter<T> {
         @Override public int asInt(TypedResource typedResource) {
             String rawValue = typedResource.asString();
             return convertInt(rawValue);
-          }
+        }
 
         @Override public void fillTypedValue(String data, TypedValue typedValue) {
             typedValue.type = TypedValue.TYPE_STRING;
