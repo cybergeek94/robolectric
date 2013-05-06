@@ -5,9 +5,13 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.content.res.XmlResourceParser;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.LongSparseArray;
+import android.util.TypedValue;
 import android.view.Display;
 import org.jetbrains.annotations.NotNull;
 import org.robolectric.Robolectric;
@@ -32,6 +36,8 @@ import org.robolectric.res.builder.XmlFileBuilder;
 import org.w3c.dom.Document;
 
 import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -56,6 +62,22 @@ public class ShadowResources {
     @RealObject Resources realResources;
     private ResourceLoader resourceLoader;
     private ResourceIndex resourceIndex;
+
+    public static void reset() {
+        for (Field field : Resources.class.getDeclaredFields()) {
+            if (Modifier.isStatic(field.getModifiers()) && field.getType().equals(LongSparseArray.class)) {
+                try {
+                    field.setAccessible(true);
+                    LongSparseArray longSparseArray = (LongSparseArray) field.get(null);
+                    if (longSparseArray != null) {
+                        longSparseArray.clear();
+                    }
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
 
     public static void setSystemResources(ResourceLoader systemResourceLoader) {
         AssetManager assetManager = Robolectric.newInstanceOf(AssetManager.class);
@@ -379,6 +401,22 @@ public class ShadowResources {
         int themeId = field("mTheme").ofType(int.class).in(theme).get();
         shadowOf(realResources.getAssets()).setTheme(themeId, theme);
         return theme;
+    }
+
+    @Implementation
+    public Drawable loadDrawable(TypedValue value, int id) {
+        Drawable drawable = (Drawable) directlyOn(realResources, Resources.class, "loadDrawable", TypedValue.class, int.class).invoke(value, id);
+        // todo: this kinda sucks, find some better way...
+        if (drawable != null) {
+            shadowOf(drawable).setLoadedFromResourceId(id);
+            if (drawable instanceof BitmapDrawable) {
+                Bitmap bitmap = ((BitmapDrawable) drawable).getBitmap();
+                if (bitmap != null && shadowOf(bitmap).createdFromResId == -1) {
+                    shadowOf(bitmap).createdFromResId = id;
+                }
+            }
+        }
+        return drawable;
     }
 
     public static <T> T inject(Resources resources, T instance) {

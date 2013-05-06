@@ -6,7 +6,7 @@ import java.util.Map;
 public class StyleData implements Style {
     private final String name;
     private final String parent;
-    private final Map<ResName, String> items = new LinkedHashMap<ResName, String>();
+    private final Map<ResName, Attribute> items = new LinkedHashMap<ResName, Attribute>();
 
     public StyleData(String name, String parent) {
         this.name = name;
@@ -21,12 +21,12 @@ public class StyleData implements Style {
         return parent;
     }
 
-    public void add(ResName attrName, String attrValue) {
+    public void add(ResName attrName, Attribute attribute) {
         attrName.mustBe("attr");
-        items.put(attrName, attrValue);
+        items.put(attrName, attribute);
     }
 
-    @Override public String getAttrValue(ResName name) {
+    @Override public Attribute getAttrValue(ResName name) {
         name.mustBe("attr");
         return items.get(name);
     }

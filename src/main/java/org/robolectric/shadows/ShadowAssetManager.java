@@ -10,6 +10,7 @@ import org.robolectric.internal.HiddenApi;
 import org.robolectric.internal.Implementation;
 import org.robolectric.internal.Implements;
 import org.robolectric.res.AttrData;
+import org.robolectric.res.Attribute;
 import org.robolectric.res.FsFile;
 import org.robolectric.res.ResName;
 import org.robolectric.res.ResourceIndex;
@@ -122,7 +123,7 @@ public final class ShadowAssetManager {
         //ResName defStyleResName = new ResName(defStyleName.namespace, "style", defStyleName.name);
         //Style style = resolveStyle(resourceLoader, defStyleResName, getQualifiers());
         if (themeStyle != null) {
-            String attrValue = themeStyle.getAttrValue(resName);
+            Attribute attrValue = themeStyle.getAttrValue(resName);
             if (attrValue == null) {
                 System.out.println("Couldn't find " + resName + " in " + themeStyleName);
             } else {
@@ -130,7 +131,7 @@ public final class ShadowAssetManager {
                 if (attrDataValue == null)
                     throw new Resources.NotFoundException("Couldn't find " + resName + " attr data");
                 AttrData attrData = (AttrData) attrDataValue.getData();
-                Converter.convertAndFill(attrValue, "fizixmizee", resourceLoader, outValue, attrData, getQualifiers());
+                Converter.convertAndFill(attrValue.value, attrValue.contextPackageName, resourceLoader, outValue, attrData, getQualifiers());
                 return true;
             }
         }
@@ -301,11 +302,11 @@ public final class ShadowAssetManager {
             this.qualifiers = qualifiers;
         }
 
-        @Override public String getAttrValue(ResName resName) {
+        @Override public Attribute getAttrValue(ResName resName) {
             resName.mustBe("attr");
             StyleData currentStyle = leafStyle;
             while (currentStyle != null) {
-                String value = currentStyle.getAttrValue(resName);
+                Attribute value = currentStyle.getAttrValue(resName);
                 if (value != null) return value;
                 currentStyle = getParent(currentStyle);
             }

@@ -1384,6 +1384,7 @@ public class Robolectric {
     public static void reset() {
         Robolectric.application = null;
         ShadowAccountManager.reset();
+        ShadowResources.reset();
         ShadowBitmapFactory.reset();
         ShadowDrawable.reset();
         ShadowMediaStore.reset();

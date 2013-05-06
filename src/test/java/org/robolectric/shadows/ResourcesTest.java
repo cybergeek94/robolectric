@@ -305,7 +305,7 @@ public class ResourcesTest {
 
     @Test
     public void systemResourcesShouldReturnCorrectSystemId() throws Exception {
-        assertThat(Resources.getSystem().getIdentifier("copy", "android:string", null)).isEqualTo(android.R.string.copy);
+        assertThat(Resources.getSystem().getIdentifier("copy", "string", "android")).isEqualTo(android.R.string.copy);
     }
 
     @Test
